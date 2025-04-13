@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
-import { ArrowUpDown } from 'lucide-react';
+import React, { useEffect, useState } from "react";
+import { ArrowUpDown } from "lucide-react";
 import Breadcrumb from "../../components/breadcrumbs";
 import Header from "../../layouts/header";
 import Sidemenu from "../../layouts/sidemenu";
-import { Link } from 'react-router-dom';
+import { Link } from "react-router-dom";
+import API from "../../api"; // This should be set up to point to your backend API
 
 interface Product {
     id: string;
@@ -19,26 +20,26 @@ const Inventory: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [sortBy, setSortBy] = useState<"name" | "quantity">("name");
     const [currentPage, setCurrentPage] = useState(1);
-    const [quantities, setQuantities] = useState<{[key: string]: number}>({});
+    const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
     const [inventoryItems, setInventoryItems] = useState<Product[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState("");
     const pageSize = 10;
 
-    // Fetch products from API
     useEffect(() => {
         const fetchProducts = async () => {
             try {
-                const response = await fetch('http://localhost:8000/api/products');
-                if (!response.ok) {
-                    throw new Error('Failed to fetch products');
-                }
-                const data = await response.json();
-                setInventoryItems(data);
-            } catch (err) {
-                setError(err instanceof Error ? err.message : 'An unknown error occurred');
-            } finally {
-                setIsLoading(false);
+                const response = await API.get("/products");
+                const items = response.data.map((item: any) => ({
+                    id: item.id,
+                    name: item.name,
+                    quantity: item.quantity,
+                    unitPrice: parseFloat(item.unit_price) || 0, // 👈 convert to number safely
+                    unitOfMeasurement: item.unit_of_measurement,
+                    category: item.category,
+                    UpdatedAt: item.updated_at ? new Date(item.updated_at).toLocaleDateString() : "",
+                }));
+                setInventoryItems(items);
+            } catch (error) {
+                console.error("Error fetching inventory:", error);
             }
         };
 
@@ -49,104 +50,32 @@ const Inventory: React.FC = () => {
         const numValue = parseInt(value) || 1;
         setQuantities(prev => ({
             ...prev,
-            [productId]: numValue > 0 ? numValue : 1
+            [productId]: numValue > 0 ? numValue : 1,
         }));
     };
 
-    const handleReceiveProduct = async (productId: string) => {
-        const quantity = quantities[productId] || 1;
-        try {
-            const response = await fetch(`http://localhost:8000/api/products/${productId}/receive`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ quantity })
-            });
-            
-            if (!response.ok) {
-                throw new Error('Failed to update product quantity');
-            }
-            
-            // Refresh the product list
-            const updatedResponse = await fetch('http://localhost:8000/api/products');
-            const updatedData = await updatedResponse.json();
-            setInventoryItems(updatedData);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to update quantity');
-        }
+    const handleReceiveProduct = (productId: string) => {
+        console.log(`Receive ${quantities[productId] || 1} of product ${productId}`);
     };
 
-    const handleDeductProduct = async (productId: string) => {
+    const handleDeductProduct = (productId: string) => {
         const quantity = quantities[productId] || 1;
         if (quantity <= 0) return;
-        
-        try {
-            const response = await fetch(`http://localhost:8000/api/products/${productId}/deduct`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ quantity })
-            });
-            
-            if (!response.ok) {
-                throw new Error('Failed to update product quantity');
-            }
-            
-            // Refresh the product list
-            const updatedResponse = await fetch('http://localhost:8000/api/products');
-            const updatedData = await updatedResponse.json();
-            setInventoryItems(updatedData);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to update quantity');
-        }
+        console.log(`Deduct ${quantity} of product ${productId}`);
     };
 
-    const filteredItems = inventoryItems.filter(item => 
+    const filteredItems = inventoryItems.filter(item =>
         item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (item.category && item.category.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
-    const sortedItems = [...filteredItems].sort((a, b) => 
+    const sortedItems = [...filteredItems].sort((a, b) =>
         sortBy === "name" ? a.name.localeCompare(b.name) : a.quantity - b.quantity
     );
 
     const totalPages = Math.ceil(sortedItems.length / pageSize);
     const startIndex = (currentPage - 1) * pageSize;
     const visibleItems = sortedItems.slice(startIndex, startIndex + pageSize);
-
-    if (isLoading) {
-        return (
-            <>
-                <Header />
-                <Sidemenu />
-                <div className="main-content app-content p-6">
-                    <div className="container-fluid">
-                        <div className="flex justify-center items-center h-64">
-                            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-                        </div>
-                    </div>
-                </div>
-            </>
-        );
-    }
-
-    if (error) {
-        return (
-            <>
-                <Header />
-                <Sidemenu />
-                <div className="main-content app-content p-6">
-                    <div className="container-fluid">
-                        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                            {error}
-                        </div>
-                    </div>
-                </div>
-            </>
-        );
-    }
 
     return (
         <>
@@ -160,18 +89,18 @@ const Inventory: React.FC = () => {
                     </div>
                     <div className="flex justify-between items-center mb-4">
                         <h2 className="text-3xl font-bold text-blue-900">Construction Supplies</h2>
-                        <div className="flex flex-col">                   
+                        <div className="flex flex-col">
                             <button onClick={() => setSortBy(sortBy === "name" ? "quantity" : "name")} className="p-2 border rounded-lg bg-gray-100">
                                 Sort by {sortBy === "name" ? "Quantity" : "Name"} <ArrowUpDown />
                             </button>
                         </div>
                     </div>
-                    <input 
-                        type="text" 
-                        placeholder="Search products or categories..." 
-                        value={searchTerm} 
-                        onChange={(e) => setSearchTerm(e.target.value)} 
-                        className="p-3 border rounded-lg w-full mb-4" 
+                    <input
+                        type="text"
+                        placeholder="Search products or categories..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="p-3 border rounded-lg w-full mb-4"
                     />
                     <div className="overflow-x-auto">
                         <table className="w-full border mt-2 text-center text-md">
@@ -204,14 +133,14 @@ const Inventory: React.FC = () => {
                                                     onChange={(e) => handleQuantityChange(item.id, e.target.value)}
                                                     className="w-16 p-1 border rounded text-center"
                                                 />
-                                                <button 
-                                                    onClick={() => handleDeductProduct(item.id)} 
+                                                <button
+                                                    onClick={() => handleDeductProduct(item.id)}
                                                     className="bg-yellow-500 hover:bg-yellow-600 text-white py-2 px-4 rounded"
                                                 >
                                                     Deduct
                                                 </button>
-                                                <button 
-                                                    onClick={() => handleReceiveProduct(item.id)} 
+                                                <button
+                                                    onClick={() => handleReceiveProduct(item.id)}
                                                     className="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded"
                                                 >
                                                     Receive
@@ -224,8 +153,8 @@ const Inventory: React.FC = () => {
                         </table>
                     </div>
                     <div className="flex justify-center mt-6 space-x-4">
-                        <button 
-                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} 
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                             disabled={currentPage === 1}
                             className="px-4 py-2 border rounded disabled:opacity-50"
                         >
@@ -234,8 +163,8 @@ const Inventory: React.FC = () => {
                         <span className="flex items-center">
                             {currentPage} / {totalPages}
                         </span>
-                        <button 
-                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} 
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                             disabled={currentPage === totalPages}
                             className="px-4 py-2 border rounded disabled:opacity-50"
                         >
