@@ -54,15 +54,28 @@ const Inventory: React.FC = () => {
         }));
     };
 
-    const handleReceiveProduct = (productId: string) => {
-        console.log(`Receive ${quantities[productId] || 1} of product ${productId}`);
-    };
-
-    const handleDeductProduct = (productId: string) => {
+    const handleReceiveProduct = async (productId: string) => {
         const quantity = quantities[productId] || 1;
-        if (quantity <= 0) return;
-        console.log(`Deduct ${quantity} of product ${productId}`);
+        try {
+            const response = await API.post(`/products/${productId}/receive`, { quantity });
+            console.log("Received:", response.data);
+            window.location.reload(); // or fetch again if needed
+        } catch (error) {
+            console.error("Error receiving product:", error);
+        }
     };
+    
+    const handleDeductProduct = async (productId: string) => {
+        const quantity = quantities[productId] || 1;
+        try {
+            const response = await API.post(`/products/${productId}/deduct`, { quantity });
+            console.log("Deducted:", response.data);
+            window.location.reload(); // or fetch again if needed
+        } catch (error) {
+            console.error("Error deducting product:", error);
+        }
+    };
+    
 
     const filteredItems = inventoryItems.filter(item =>
         item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
