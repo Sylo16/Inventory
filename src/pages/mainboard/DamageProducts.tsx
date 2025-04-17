@@ -3,10 +3,13 @@ import Breadcrumb from "../../components/breadcrumbs";
 import Header from "../../layouts/header";
 import Sidemenu from "../../layouts/sidemenu";
 import Modal from "../../components/modal"; 
+import API from "../../api";
 
 interface DamagedProduct {
   customerName: string;
+  customer_name?: string; // Optional property for compatibility
   name: string;
+  product_name?: string; // Optional property for compatibility
   quantity: number;
   reason: string;
   date: string;
@@ -26,27 +29,68 @@ const DamagedProducts: React.FC = () => {
     "Cement", "Steel Bars", "Concrete Nails", "Plywood", "Rebars", "Paint", "Wire Mesh", "Tile Adhesive", "Wood Planks", "Galvanized Iron Sheets"
   ];
 
-  const handleRecordDamage = () => {
-    if (damagedProduct.customerName && damagedProduct.name && damagedProduct.quantity > 0 && damagedProduct.reason && damagedProduct.date) {
-      setIsModalOpen(true); // Open confirmation modal
-    } else {
-      alert('Please fill all fields correctly.');
+  // Function to fetch damaged products from the backend
+  const fetchDamagedProducts = async () => {
+    try {
+      const response = await API.get("/damaged-products");
+      setDamagedProducts(response.data);
+    } catch (error) {
+      console.error("There was an error fetching damaged products:", error);
     }
   };
 
-  const confirmDamage = () => {
-    setDamagedProducts(prevDamaged => [...prevDamaged, damagedProduct]);
-    setIsSuccess(true);
-    setDamagedProduct({ customerName: '', name: '', quantity: 0, reason: '', date: '' });
-    setIsModalOpen(false);
+  // Function to handle the form submission and record damage
+  const handleRecordDamage = () => {
+    if (
+        damagedProduct.customerName &&
+        damagedProduct.name &&
+        damagedProduct.quantity > 0 &&
+        damagedProduct.reason &&
+        damagedProduct.date
+    ) {
+        setIsModalOpen(true); // Open confirmation modal
+    } else {
+        alert('Please fill all fields correctly.');
+    }
+};
 
-    // Hide success message after 3 seconds
-    setTimeout(() => setIsSuccess(false), 3000);
+
+  // Function to confirm and send the damage data to the backend
+  const confirmDamage = async () => {
+    console.log(damagedProduct);  // Log the data to inspect
+  
+    const productData = {
+      customer_name: damagedProduct.customerName, // Make sure the keys match
+      product_name: damagedProduct.name,          // Backend expects product_name, not name
+      quantity: damagedProduct.quantity,
+      reason: damagedProduct.reason,
+      date: damagedProduct.date,
+    };
+  
+    try {
+      const response = await API.post('/damaged-products', productData);
+      setDamagedProducts(prevDamaged => [...prevDamaged, response.data.damagedProduct]);
+      setIsSuccess(true);
+      setDamagedProduct({ customerName: '', name: '', quantity: 0, reason: '', date: '' });
+      setIsModalOpen(false);
+  
+      setTimeout(() => setIsSuccess(false), 3000);
+    } catch (error) {
+      console.error("There was an error recording the damaged product:", error);
+      alert("Error recording the damaged product. Please try again.");
+    }
   };
+  
 
+  // Function to cancel the damage recording
   const cancelDamage = () => {
     setIsModalOpen(false);
   };
+
+  // UseEffect to load the initial list of damaged products from the API when the component is mounted
+  React.useEffect(() => {
+    fetchDamagedProducts();
+  }, []);
 
   return (
     <>
@@ -125,9 +169,9 @@ const DamagedProducts: React.FC = () => {
               <div className="overflow-y-auto max-h-80">
                 <ul>
                   {damagedProducts.map((item, index) => (
-                    <li key={index} className="p-3 mb-2 border border-gray-200 rounded-lg hover:bg-gray-100">
-                      <span className="font-bold">Customer Name:</span> {item.customerName} <br />
-                      <span className="font-bold">Product:</span> {item.name} <br />
+                      <li key={index} className="p-3 mb-2 border border-gray-200 rounded-lg hover:bg-gray-100">
+                      <span className="font-bold">Customer Name:</span> {item.customer_name} <br />
+                      <span className="font-bold">Product:</span> {item.product_name} <br />
                       <span className="font-bold">Quantity:</span> {item.quantity} <br />
                       <span className="font-bold">Reason:</span> {item.reason} <br />
                       <span className="font-bold">Date:</span> {item.date}

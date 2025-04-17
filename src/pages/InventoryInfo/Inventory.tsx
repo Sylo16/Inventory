@@ -23,6 +23,8 @@ const Inventory: React.FC = () => {
     const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
     const [inventoryItems, setInventoryItems] = useState<Product[]>([]);
     const pageSize = 10;
+    const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+
 
     useEffect(() => {
         const fetchProducts = async () => {
@@ -58,8 +60,15 @@ const Inventory: React.FC = () => {
         const quantity = quantities[productId] || 1;
         try {
             const response = await API.post(`/products/${productId}/receive`, { quantity });
-            console.log("Received:", response.data);
-            window.location.reload(); // or fetch again if needed
+            const updatedProduct = response.data.product;
+    
+            setInventoryItems(prevItems =>
+                prevItems.map(item =>
+                    item.id === productId
+                        ? { ...item, quantity: updatedProduct.quantity, UpdatedAt: new Date(updatedProduct.updated_at).toLocaleDateString() }
+                        : item
+                )
+            );
         } catch (error) {
             console.error("Error receiving product:", error);
         }
@@ -69,12 +78,20 @@ const Inventory: React.FC = () => {
         const quantity = quantities[productId] || 1;
         try {
             const response = await API.post(`/products/${productId}/deduct`, { quantity });
-            console.log("Deducted:", response.data);
-            window.location.reload(); // or fetch again if needed
+            const updatedProduct = response.data.product;
+    
+            setInventoryItems(prevItems =>
+                prevItems.map(item =>
+                    item.id === productId
+                        ? { ...item, quantity: updatedProduct.quantity, UpdatedAt: new Date(updatedProduct.updated_at).toLocaleDateString() }
+                        : item
+                )
+            );
         } catch (error) {
             console.error("Error deducting product:", error);
         }
     };
+    
     
 
     const filteredItems = inventoryItems.filter(item =>
@@ -82,9 +99,16 @@ const Inventory: React.FC = () => {
         (item.category && item.category.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
-    const sortedItems = [...filteredItems].sort((a, b) =>
-        sortBy === "name" ? a.name.localeCompare(b.name) : a.quantity - b.quantity
-    );
+    const sortedItems = [...filteredItems].sort((a, b) => {
+        let comparison = 0;
+        if (sortBy === "name") {
+            comparison = a.name.localeCompare(b.name);
+        } else if (sortBy === "quantity") {
+            comparison = a.quantity - b.quantity;
+        }
+        return sortOrder === "asc" ? comparison : -comparison;
+    });
+    
 
     const totalPages = Math.ceil(sortedItems.length / pageSize);
     const startIndex = (currentPage - 1) * pageSize;
@@ -103,9 +127,18 @@ const Inventory: React.FC = () => {
                     <div className="flex justify-between items-center mb-4">
                         <h2 className="text-3xl font-bold text-blue-900">Construction Supplies</h2>
                         <div className="flex flex-col">
-                            <button onClick={() => setSortBy(sortBy === "name" ? "quantity" : "name")} className="p-2 border rounded-lg bg-gray-100">
-                                Sort by {sortBy === "name" ? "Quantity" : "Name"} <ArrowUpDown />
-                            </button>
+                        <button
+    onClick={() => {
+        // If same sort, toggle direction; if switching, reset to asc
+        setSortOrder(prev => (sortBy === "name" || sortBy === "quantity" ? (prev === "asc" ? "desc" : "asc") : "asc"));
+        setSortBy(prev => (prev === "name" ? "quantity" : "name"));
+    }}
+    className="p-2 border rounded-lg bg-gray-100 flex items-center gap-1"
+>
+    Sort by {sortBy === "name" ? "Quantity" : "Name"} 
+    <ArrowUpDown className={`transform ${sortOrder === "desc" ? "rotate-180" : ""}`} />
+</button>
+
                         </div>
                     </div>
                     <input
