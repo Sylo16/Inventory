@@ -17,7 +17,7 @@ import Reports from './pages/mainboard/Reports';
 import DamagedProducts from './pages/mainboard/DamageProducts';
 import CustomerPurchased from './pages/CustomerInfo/CustomerList';
 import CustomerAdd from './pages/CustomerInfo/CustomerAdd';
-import CustomerUpdate from './pages/CustomerInfo/CustomerUpdate';
+
 
 
 
@@ -35,7 +35,6 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/reports" element={<Reports />} />
         <Route path="/customerpurchased" element={<CustomerPurchased />} />
         <Route path="/customerpurchased/addcustomer" element={<CustomerAdd />} />
-        <Route path="/customerpurchased/update" element={<CustomerUpdate />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>

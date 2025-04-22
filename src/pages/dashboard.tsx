@@ -14,7 +14,7 @@ function Dashboard() {
     const [stats, setStats] = useState([
         { title: 'Total Sales', value: '₱0', icon: <FaShoppingCart className="text-blue-500" />, description: 'Today: ₱0 | This Month: ₱0', trend: 'N/A' },
         { title: 'Total Revenue', value: '₱0', icon: <FaMoneyBillWave className="text-green-500" />, description: 'Gross: ₱0 | Net: ₱0', trend: 'N/A' },
-        { title: 'Inventory', value: '0 Items', icon: <FaBoxes className="text-orange-500" />, description: '0 Categories | 0 Suppliers', trend: 'N/A' },
+        { title: 'Inventory', value: '0 Items', icon: <FaBoxes className="text-orange-500" />, description: '0 Categories', trend: 'N/A' },
         { title: 'Critical Alerts', value: '0 Items', icon: <FaExclamationTriangle className="text-red-500" />, description: '0 Low stock | 0 Out of stock', trend: 'N/A' }
     ]);
 
@@ -73,7 +73,7 @@ function Dashboard() {
                         title: 'Inventory', 
                         value: `${data.total_items ?? 0} Items`, 
                         icon: <FaBoxes className="text-orange-500" />, 
-                        description: `${data.total_categories ?? 0} Categories | ${data.total_suppliers ?? 0} Suppliers`,
+                        description: `${data.total_categories ?? 0} Categories`,
                         trend: data.inventory_trend ?? 'N/A'
                     },
                     { 
@@ -129,7 +129,7 @@ function Dashboard() {
 
                         {/* Stats Section */}
                         <div className="xxl:col-span-9 col-span-12">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
                                 {stats.map((stat, index) => (
                                     <div key={index} className="box shadow-sm rounded-xl p-4 bg-white hover:shadow-md transition-shadow">
                                         <div className="flex items-start">
@@ -152,7 +152,7 @@ function Dashboard() {
                     </div>
 
                     {/* Main Analytics Section */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-6">
                         
                         {/* Sales Analytics */}
                         <div className="lg:col-span-2 box shadow-sm rounded-xl p-5 bg-white">
@@ -230,7 +230,7 @@ function Dashboard() {
                     </div>
 
                     {/* Bottom Section */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
                         
                         {/* Top-Selling Products */}
 <div className="box shadow-sm rounded-xl p-5 bg-white">

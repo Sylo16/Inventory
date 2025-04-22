@@ -50,12 +50,11 @@ function Sidemenu() {
                                     </span>
                                 </Link> 
                             </li>
-                            <li className="slide__category"><span className="category-name">Sales & Transactions</span></li>
                             <li className="slide">
                                 <Link to='/sales' className="side-menu__item">
                                     <i className="w-6 h-4 side-menu__icon bi bi-graph-up"></i>
                                     <span className="side-menu__label">
-                                        Sales
+                                        Sales Analytics
                                     </span>
                                 </Link> 
                             </li>
