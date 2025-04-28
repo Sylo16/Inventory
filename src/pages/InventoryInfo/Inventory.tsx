@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ArrowUpDown, Eye, EyeOff } from "lucide-react";
+import { ArrowUpDown, Eye, EyeOff, ArrowUpCircle, Edit2 } from "lucide-react"; // Import new icons
 import Breadcrumb from "../../components/breadcrumbs";
 import Header from "../../layouts/header";
 import Sidemenu from "../../layouts/sidemenu";
@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 import API from "../../api";
 import { toast, ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
+
 
 interface Product {
   id: string;
@@ -27,6 +28,8 @@ const Inventory: React.FC = () => {
   const [inventoryItems, setInventoryItems] = useState<Product[]>([]);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [showHidden, setShowHidden] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const pageSize = 10;
 
   const fetchProducts = async () => {
@@ -60,53 +63,53 @@ const Inventory: React.FC = () => {
     }));
   };
 
-  const handleReceiveProduct = async (productId: string) => {
-    const quantity = quantities[productId] || 0;
-    try {
-      const response = await API.post(`/products/${productId}/receive`, { quantity });
-      const updatedProduct = response.data.product;
-      setInventoryItems((prevItems) =>
-        prevItems.map((item) =>
-          item.id === productId
-            ? {
-                ...item,
-                quantity: updatedProduct.quantity,
-                updatedAt: new Date(updatedProduct.updated_at).toLocaleDateString(),
-              }
-            : item
-        )
-      );
-      setQuantities((prev) => ({ ...prev, [productId]: 0 }));
-      toast.success("Product received successfully!");
-    } catch (error) {
-      console.error("Error receiving product:", error);
-      toast.error("Failed to receive product.");
+  const handleUpdateProduct = (productId: string) => {
+    const productToUpdate = inventoryItems.find(item => item.id === productId);
+    if (productToUpdate) {
+      setSelectedProduct(productToUpdate);
+      setIsModalOpen(true);
     }
   };
 
-  const handleDeductProduct = async (productId: string) => {
-    const quantity = quantities[productId] || 0;
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedProduct(null);
+  };
+
+  const handleSaveChanges = async () => {
+    if (!selectedProduct) return;
+  
     try {
-      const response = await API.post(`/products/${productId}/deduct`, { quantity });
+      const response = await API.put(`/products/${selectedProduct.id}`, selectedProduct);
       const updatedProduct = response.data.product;
+  
+      const normalizedProduct: Product = {
+        id: updatedProduct.id,
+        name: updatedProduct.name,
+        quantity: updatedProduct.quantity,
+        unitPrice: parseFloat(updatedProduct.unit_price) || 0,
+        unitOfMeasurement: updatedProduct.unit_of_measurement,
+        category: updatedProduct.category,
+        updatedAt: updatedProduct.updated_at
+          ? new Date(updatedProduct.updated_at).toLocaleDateString()
+          : "",
+        hidden: updatedProduct.hidden,
+      };
+  
       setInventoryItems((prevItems) =>
         prevItems.map((item) =>
-          item.id === productId
-            ? {
-                ...item,
-                quantity: updatedProduct.quantity,
-                updatedAt: new Date(updatedProduct.updated_at).toLocaleDateString(),
-              }
-            : item
+          item.id === selectedProduct.id ? normalizedProduct : item
         )
       );
-      setQuantities((prev) => ({ ...prev, [productId]: 0 }));
-      toast.success("Product deducted successfully!");
+  
+      setIsModalOpen(false);
+      toast.success("Product updated successfully!");
     } catch (error) {
-      console.error("Error deducting product:", error);
-      toast.error("Failed to deduct product.");
+      console.error("Error updating product:", error);
+      toast.error("Failed to update product.");
     }
   };
+  
 
   const handleHideProduct = async (productId: string) => {
     try {
@@ -127,6 +130,48 @@ const Inventory: React.FC = () => {
     } catch (error) {
       console.error("Error unhiding product:", error);
       toast.error("Failed to unhide product.");
+    }
+  };
+
+  const handleReceiveProduct = async (productId: string) => {
+    try {
+      const quantityToAdd = quantities[productId] || 0;
+      if (quantityToAdd <= 0) {
+        toast.error("Please enter a valid quantity to receive.");
+        return;
+      }
+  
+      const response = await API.put(`/products/${productId}/receive`, {
+        quantity: quantityToAdd,
+      });
+  
+      const updatedProduct = response.data.product;
+  
+      setInventoryItems((prevItems) =>
+        prevItems.map((item) =>
+          item.id === productId ? { ...item, ...updatedProduct } : item
+        )
+      );
+  
+      // Reset quantity input for the product
+      setQuantities((prevQuantities) => ({
+        ...prevQuantities,
+        [productId]: 0,
+      }));
+  
+      toast.success("Product quantity updated successfully!");
+    } catch (error) {
+      console.error("Error receiving product:", error);
+      toast.error("Failed to update product quantity.");
+    }
+  };
+
+  const handleModalChange = (field: string, value: string) => {
+    if (selectedProduct) {
+      setSelectedProduct((prevProduct) => ({
+        ...prevProduct!,
+        [field]: field === "unitPrice" ? parseFloat(value) : value,
+      }));
     }
   };
 
@@ -158,13 +203,11 @@ const Inventory: React.FC = () => {
       <div className="main-content app-content p-6">
         <div className="container-fluid">
           <Breadcrumb title="Inventory Status" links={[{ text: "Dashboard", link: "/dashboard" }]} active="Inventory" />
-
           <div className="flex justify-end mb-4">
             <Link to="/inventory/addproduct" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
               + Add New
             </Link>
           </div>
-
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-3xl font-bold text-blue-900">Construction Supplies</h2>
             <div className="flex flex-col sm:flex-row gap-2">
@@ -180,7 +223,7 @@ const Inventory: React.FC = () => {
               </button>
               <button
                 onClick={() => setShowHidden(prev => !prev)}
-                className="p-2 border rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
+                className="p-2 border rounded-lg bg-gray-600 text-white hover:bg-indigo-700"
               >
                 {showHidden ? "Show Visible Products" : "Show Hidden Products"}
               </button>
@@ -214,13 +257,17 @@ const Inventory: React.FC = () => {
               </thead>
               <tbody>
                 {visibleItems.map((item) => (
-                  <tr
-                    key={item.id}
-                    className={`border hover:bg-gray-50 ${item.hidden ? 'blur-sm opacity-50' : ''}`}
-                  >
+                  <tr key={item.id} className={`border hover:bg-gray-50 ${item.hidden ? 'blur-sm opacity-50' : ''}`}>
                     <td className="py-3 px-4">{item.name}</td>
                     <td className="py-3 px-4">{item.category}</td>
-                    <td className="py-3 px-4">{item.quantity}</td>
+                    <td className="py-3 px-4"><span className={`px-2 py-1 rounded ${item.quantity < 10
+                        ? 'bg-red-500 text-white'
+                        : item.quantity < 50
+                        ? 'bg-yellow-200 text-black'
+                        : 'bg-green-500 text-white'
+                        }`}> {item.quantity}
+                      </span>
+                    </td>
                     <td className="py-3 px-4">{item.unitOfMeasurement}</td>
                     <td className="py-3 px-4">₱{item.unitPrice.toFixed(2)}</td>
                     <td className="py-3 px-4">{item.updatedAt}</td>
@@ -229,24 +276,25 @@ const Inventory: React.FC = () => {
                         <input
                           type="number"
                           min="0"
-                          value={quantities[item.id] || 0}
+                          value={quantities[item.id] ?? ''}
                           onChange={(e) => handleQuantityChange(item.id, e.target.value)}
+                          placeholder="Qty"
                           className="w-16 p-1 border rounded text-center"
                           disabled={item.hidden}
                         />
                         <button
-                          onClick={() => handleDeductProduct(item.id)}
-                          className="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded"
+                          onClick={() => handleReceiveProduct(item.id)}
+                          className="bg-green-500 hover:bg-green-700 text-white py-2 px-4 rounded flex items-center justify-center space-x-2"
                           disabled={item.hidden}
                         >
-                          Deduct
+                          <ArrowUpCircle className="w-5 h-5 mr-2" /> Receive
                         </button>
                         <button
-                          onClick={() => handleReceiveProduct(item.id)}
-                          className="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded"
+                          onClick={() => handleUpdateProduct(item.id)}
+                          className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded flex items-center justify-center space-x-2"
                           disabled={item.hidden}
                         >
-                          Receive
+                          <Edit2 className="w-5 h-5 mr-2" /> Update
                         </button>
                         <button
                           onClick={() =>
@@ -265,24 +313,92 @@ const Inventory: React.FC = () => {
             </table>
           </div>
 
-          <div className="flex justify-center mt-6 space-x-4">
+          <div className="flex justify-center items-center mt-4 space-x-2">
             <button
-              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              className="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded"
+              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+              className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
               disabled={currentPage === 1}
             >
               Previous
             </button>
+            <span className="self-center">{`Page ${currentPage} of ${totalPages}`}</span>
             <button
-              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-              className="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded"
+              onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+              className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
               disabled={currentPage === totalPages}
             >
               Next
             </button>
           </div>
+
         </div>
       </div>
+
+      {isModalOpen && selectedProduct && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+    <div className="bg-white p-6 rounded-lg shadow-lg w-1/3">
+      <h3 className="text-xl font-bold mb-4">Edit Product</h3>
+      
+      <div className="mb-4">
+        <label className="block mb-1">Product Name</label>
+        <input
+          type="text"
+          value={selectedProduct.name}
+          onChange={(e) => handleModalChange("name", e.target.value)}
+          className="w-full p-2 border rounded"
+        />
+      </div>
+      
+      <div className="mb-4">
+        <label className="block mb-1">Category</label>
+        <input
+          type="text"
+          value={selectedProduct.category || ""}
+          onChange={(e) => handleModalChange("category", e.target.value)}
+          className="w-full p-2 border rounded"
+        />
+      </div>
+      
+      <div className="mb-4">
+        <label className="block mb-1">Unit of Measurement</label>
+        <input
+          type="text"
+          value={selectedProduct.unitOfMeasurement}
+          onChange={(e) => handleModalChange("unitOfMeasurement", e.target.value)}
+          className="w-full p-2 border rounded"
+        />
+      </div>
+
+      <div className="mb-4">
+        <label className="block mb-1">Unit Price</label>
+        <input
+          type="number"
+          min="0"
+          value={selectedProduct.unitPrice}
+          onChange={(e) => handleModalChange("unitPrice", e.target.value)}
+          className="w-full p-2 border rounded"
+        />
+      </div>
+
+      <div className="flex justify-end space-x-3">
+        <button
+          onClick={handleCloseModal}
+          className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={handleSaveChanges}
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        >
+          Save Changes
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+
     </>
   );
 };

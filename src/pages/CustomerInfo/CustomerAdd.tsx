@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom"; // Import useNavigate
+import { useNavigate } from "react-router-dom";
 import Breadcrumb from "../../components/breadcrumbs";
 import Header from "../../layouts/header";
 import Sidemenu from "../../layouts/sidemenu";
@@ -6,8 +6,8 @@ import Modal from "../../components/modal";
 import Select from "react-select";
 import { useState, useEffect } from "react";
 import API from "../../api";
-import { toast, ToastContainer } from "react-toastify"; // Correct import
-import 'react-toastify/dist/ReactToastify.css'; // Import styles for react-toastify
+import { toast, ToastContainer } from "react-toastify";
+import 'react-toastify/dist/ReactToastify.css';
 
 type ProductOption = {
   value: string;
@@ -20,7 +20,7 @@ type CategoryOption = { value: string; label: string };
 type UnitOption = { value: string; label: string };
 
 const AddCustomer: React.FC = () => {
-  const navigate = useNavigate(); // Initialize navigate for routing
+  const navigate = useNavigate();
   const [customer, setCustomer] = useState({ name: "", phone: "" });
   const [purchaseDate, setPurchaseDate] = useState("");
   const [products, setProducts] = useState([{ productName: "", category: "", unit: "", quantity: "" }]);
@@ -54,14 +54,19 @@ const AddCustomer: React.FC = () => {
     );
   };
 
+  const getFilteredUnits = (category: string, productName: string): UnitOption[] => {
+    const filtered = allProducts.filter(
+      (product) =>
+        (!category || product.category === category) &&
+        (!productName || product.label === productName)
+    );
+    const uniqueUnits = Array.from(new Set(filtered.map((p) => p.unit)));
+    return uniqueUnits.map((unit) => ({ value: unit, label: unit }));
+  };
+
   const getCategoryOptions = (): CategoryOption[] => {
     const categories = Array.from(new Set(allProducts.map((p) => p.category)));
     return categories.map((cat) => ({ value: cat, label: cat }));
-  };
-
-  const getUnitOptions = (): UnitOption[] => {
-    const units = Array.from(new Set(allProducts.map((p) => p.unit)));
-    return units.map((unit) => ({ value: unit, label: unit }));
   };
 
   const validateForm = () => {
@@ -133,27 +138,41 @@ const AddCustomer: React.FC = () => {
           quantity: Number(p.quantity),
         })),
       };
-
+  
+      // Create customer
       const response = await API.post("/customers", payload);
-
+  
+      // After customer is created, update inventory
       if (response.status === 201) {
-        toast.success("Customer added successfully!"); // Add the success toast
+        // For each product purchased, update the inventory
+        for (const product of products) {
+          const productToUpdate = allProducts.find(
+            (prod) => prod.value === product.productName
+          );
+  
+          if (productToUpdate) {
+              await API.put(`/products/${encodeURIComponent(productToUpdate.value)}/deduct`, {
+                quantity: product.quantity,
+            });
+          }
+        }
+  
+        toast.success("Customer added successfully!");
         setCustomer({ name: "", phone: "" });
         setPurchaseDate("");
         setProducts([{ productName: "", category: "", unit: "", quantity: "" }]);
         setIsModalOpen(false);
       }
     } catch (error: any) {
-      if (error.response && error.response.status === 422) {
-        const validationErrors = error.response.data.errors;
-        const messages = Object.values(validationErrors).flat().join("\n");
-        alert(`Validation failed:\n${messages}`);
-      } else {
-        console.error("Error saving customer:", error);
-        alert("There was a problem saving the customer.");
+      console.error("Error saving customer:", error);
+      if (error.response) {
+        console.log("Error response:", error.response);
       }
+      alert("There was a problem saving the customer.");
     }
   };
+  
+  
 
   return (
     <>
@@ -168,7 +187,6 @@ const AddCustomer: React.FC = () => {
           />
           <div className="flex flex-col mt-10 items-center">
             <div className="bg-white shadow rounded-2xl p-6 w-full mx-auto relative" style={{ maxWidth: "1000px" }}>
-              {/* Cancel Button */}
               <button
                 type="button"
                 onClick={() => navigate("/customerpurchased")}
@@ -241,7 +259,7 @@ const AddCustomer: React.FC = () => {
                     <Select
                       value={product.unit ? { label: product.unit, value: product.unit } : null}
                       onChange={(selected) => handleProductChange(index, "unit", selected?.value || "")}
-                      options={getUnitOptions()}
+                      options={getFilteredUnits(product.category, product.productName)}
                       placeholder="Select Unit"
                       isClearable
                     />
@@ -295,7 +313,6 @@ const AddCustomer: React.FC = () => {
         onConfirm={handleConfirm}
       />
 
-      {/* ToastContainer component */}
       <ToastContainer />
     </>
   );

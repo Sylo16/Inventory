@@ -14,7 +14,7 @@ function App() {
           throw new Error("Network response was not ok");
         }
         return response.json();
-      })
+      }) 
       .then(data => setBackendData(data))
       .catch(error => console.error("Fetching error:", error));
   }, []);

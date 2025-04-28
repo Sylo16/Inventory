@@ -7,37 +7,9 @@ import Header from "../../layouts/header";
 import Sidemenu from "../../layouts/sidemenu";
 import ProfileImages from "../../assets/images/faces/10.jpg";
 import API from "../../api";
+import Modal from "../../components/modal";
+import { FiUser } from "react-icons/fi";
 
-const CustomerModal: React.FC<{
-  isOpen: boolean;
-  customer: any;
-  onClose: () => void;
-}> = ({ isOpen, customer, onClose }) => {
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded p-6 w-96">
-        <h2 className="text-lg font-bold mb-4">Customer Details</h2>
-        <p>
-          <strong>Name:</strong> {customer?.name}
-        </p>
-        <p>
-          <strong>Phone:</strong> {customer?.phone}
-        </p>
-        <p>
-          <strong>Purchase Date:</strong> {customer?.purchaseDate}
-        </p>
-        <button
-          onClick={onClose}
-          className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
-        >
-          Close
-        </button>
-      </div>
-    </div>
-  );
-};
 
 const CustomerPurchased: React.FC = () => {
   const gridRef = useRef<HTMLDivElement>(null);
@@ -95,6 +67,7 @@ const CustomerPurchased: React.FC = () => {
                       name: row.cells[1].data,
                       phone: row.cells[2].data,
                       purchaseDate: row.cells[3].data,
+                      products: row.cells[4].data, // Make sure the product data is added here
                     })}'>
                     <i class="bi bi-eye"></i> View
                   </button>
@@ -119,7 +92,8 @@ const CustomerPurchased: React.FC = () => {
           (index + 1).toString(),
           customer.name,
           customer.phone,
-          customer.purchaseDate,
+          customer.purchase_date.split("T")[0],
+          customer.products, // Ensure products data is available here
         ]),
       });
 
@@ -188,10 +162,58 @@ const CustomerPurchased: React.FC = () => {
         </div>
       </div>
 
-      <CustomerModal
+      {/* Modal for viewing customer details */}
+      <Modal
         isOpen={isModalOpen}
-        customer={selectedCustomer}
+        title={
+          <div className="flex items-center gap-2 text-lg font-semibold">
+            <FiUser className="text-blue-600" />
+            Customer Details
+          </div>
+        }
+        message={
+          <>
+          <div className="text-base">
+            <p>
+              <strong>Name:</strong> {selectedCustomer?.name}
+            </p>
+            <p>
+              <strong>Phone:</strong> {selectedCustomer?.phone}
+            </p>
+            <p>
+              <strong>Purchase Date:</strong> {selectedCustomer?.purchaseDate?.split("T")[0]}
+            </p>
+          </div>
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold mb-4">Materials/Products Purchased</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left border">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="px-4 py-2 border">Product Name</th>
+                      <th className="px-4 py-2 border">Category</th>
+                      <th className="px-4 py-2 border">Unit</th>
+                      <th className="px-4 py-2 border">Quantity</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedCustomer?.products?.map((product: any, index: number) => (
+                      <tr key={index} className="border-t">
+                        <td className="px-4 py-2 border">{product.product_name}</td>
+                        <td className="px-4 py-2 border">{product.category}</td>
+                        <td className="px-4 py-2 border">{product.unit}</td>
+                        <td className="px-4 py-2 border">{product.quantity}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        }
         onClose={() => setIsModalOpen(false)}
+        onCancel={() => setIsModalOpen(false)}
+        
       />
     </>
   );

@@ -12,7 +12,7 @@ function Dashboard() {
     const [showAllProducts, setShowAllProducts] = useState(false);
 
     const [stats, setStats] = useState([
-        { title: 'Total Sales', value: '₱0', icon: <FaShoppingCart className="text-blue-500" />, description: 'Today: ₱0 | This Month: ₱0', trend: 'N/A' },
+        { title: 'Total Sales', value: '₱0', icon: <FaShoppingCart className="text-indigo-500" />, description: 'Today: ₱0 | This Month: ₱0', trend: 'N/A' },
         { title: 'Total Revenue', value: '₱0', icon: <FaMoneyBillWave className="text-green-500" />, description: 'Gross: ₱0 | Net: ₱0', trend: 'N/A' },
         { title: 'Inventory', value: '0 Items', icon: <FaBoxes className="text-orange-500" />, description: '0 Categories', trend: 'N/A' },
         { title: 'Critical Alerts', value: '0 Items', icon: <FaExclamationTriangle className="text-red-500" />, description: '0 Low stock | 0 Out of stock', trend: 'N/A' }
@@ -89,6 +89,8 @@ function Dashboard() {
                 setCategorySales(data.category_sales ?? []);
                 setTopSellingProducts(data.top_selling_products ?? []);
                 setRecentUpdates(data.recent_updates ?? []);
+         
+
             })
             .catch(error => {
                 console.error("Dashboard data fetch error:", error);
@@ -102,7 +104,7 @@ function Dashboard() {
             <Sidemenu />
             <div className="main-content app-content">
                 <div className="container-fluid">
-                    <Breadcrumb title="Construction Dashboard" />
+                    <Breadcrumb title="Dashboard" />
                     
                     {/* Welcome Section */}
                     <div className="grid grid-cols-12 gap-x-6 mt-6">
@@ -233,34 +235,34 @@ function Dashboard() {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
                         
                         {/* Top-Selling Products */}
-<div className="box shadow-sm rounded-xl p-5 bg-white">
-    <h2 className="font-bold text-lg text-gray-800 flex items-center mb-4">
-        <span className="bg-yellow-100 p-2 rounded-lg mr-2 text-yellow-600">🏆</span>
-        Top-Selling Products
-    </h2>
-    <div className="space-y-3">
-        {(showAllProducts ? topSellingProducts : topSellingProducts.slice(0, 5)).map((product, index) => (
-            <div key={index} className="flex justify-between items-center p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
-                <div>
-                    <p className="font-medium text-gray-800">{product.name}</p>
-                    <p className="text-xs text-gray-500">{product.quantity}</p>
-                </div>
-                <div className="text-right">
-                    <p className="font-bold text-green-600">{product.sales}</p>
-                    <p className={`text-xs ${product.trend.includes('↑') ? 'text-green-500' : 'text-red-500'}`}>
-                        {product.trend}
-                    </p>
-                </div>
-            </div>
-        ))}
-    </div>
-    <button 
-        className="w-full mt-4 py-2 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
-        onClick={() => setShowAllProducts(prev => !prev)}
-    >
-        {showAllProducts ? 'Show Less' : 'View Full Product Report'}
-    </button>
-</div>
+                    <div className="box shadow-sm rounded-xl p-5 bg-white">
+                        <h2 className="font-bold text-lg text-gray-800 flex items-center mb-4">
+                            <span className="bg-yellow-100 p-2 rounded-lg mr-2 text-yellow-600">🏆</span>
+                            Top-Selling Products
+                        </h2>
+                        <div className="space-y-3">
+                            {(showAllProducts ? topSellingProducts : topSellingProducts.slice(0, 5)).map((product, index) => (
+                                <div key={index} className="flex justify-between items-center p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                                    <div>
+                                        <p className="font-medium text-gray-800">{product.name}</p>
+                                        <p className="text-xs text-gray-500">{product.quantity}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="font-bold text-green-600">{product.sales}</p>
+                                        <p className={`text-xs ${product.trend.includes('↑') ? 'text-green-500' : 'text-red-500'}`}>
+                                            {product.trend}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <button 
+                            className="w-full mt-4 py-2 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+                            onClick={() => setShowAllProducts(prev => !prev)}
+                        >
+                            {showAllProducts ? 'Show Less' : 'View Full Product Report'}
+                        </button>
+                    </div>
 
 
                         {/* Recent Updates */}
@@ -296,9 +298,12 @@ function Dashboard() {
                             <button className="w-full mt-4 py-2 text-sm bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
                                 View All Notifications
                             </button>
-                        </div>
-                    </div>
+                        </div>      
+                    </div>                  
                 </div>
+            </div>
+            <div className="footer bg-white shadow-lg rounded-2xl p-4 mt-10">
+                <p className="text-center text-gray-600">© 2025 Sales and Inventory for JARED Construction Supplies and Trading. All rights reserved.</p>
             </div>
         </>
     );

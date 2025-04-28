@@ -4,7 +4,7 @@ import Breadcrumb from "../../components/breadcrumbs";
 import Header from "../../layouts/header";
 import Sidemenu from "../../layouts/sidemenu";
 import API from '../../api';
-import { Listbox } from '@headlessui/react';
+import Select from 'react-select';
 
 interface ProductForm {
   name: string;
@@ -33,6 +33,10 @@ const AddProduct: React.FC = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSelectChange = (name: keyof ProductForm, value: string | null) => {
+    setFormData(prev => ({ ...prev, [name]: value || '' }));
   };
 
   const validateForm = (): boolean => {
@@ -91,20 +95,21 @@ const AddProduct: React.FC = () => {
   };
 
   const measurementUnits = [
-    'Piece', 'Box', 'Pack', 'Kilogram', 'Gram',
-    'Liter', 'Milliliter', 'Meter', 'Centimeter',
-    'Square Meter', 'Cubic Meter', 'Set',
-    'Bag (kg or lb)', 'Cubic Meter (cu.m)', 'Cubic Yard', 'Ton',
-    'Roll (meter/foot)', 'Sheet (4x8 ft)', 'Board Foot', 'Length (Meter, Foot)',
-    'Piece (length in meters/feet)', 'Kilogram', 'Box (sq.m coverage)',
-    'Tube', 'Cartridge', 'Liter (gallon)', 'Box (piece)', 'Set', 'Roll', 'Sack'
+    'Piece', 'Box', 'Pack', 'Kilogram', 'Gram', 'Liter', 'Milliliter',
+    'Meter', 'Centimeter', 'Square Meter', 'Cubic Meter', 'Set',
+    'Bag (kg or lb)', 'Cubic Yard', 'Ton', 'Roll (meter/foot)', 'Sheet (4x8 ft)',
+    'Board Foot', 'Length (Meter, Foot)', 'Piece (length in meters/feet)',
+    'Box (sq.m coverage)', 'Tube', 'Cartridge', 'Liter (gallon)', 'Box (piece)', 'Roll', 'Sack'
   ];
 
   const categories = [
-    'Lumber', 'Hardware', 'Tools', 'Electrical',
-    'Plumbing', 'Concrete', 'Roofing', 'Paint',
-    'Safety', 'Other'
+    'Lumber', 'Fencing Materials', 'Tools', 'Electrical',
+    'Plumbing', 'Concrete', 'Roofing', 'Paint', 'Metal Products',
+    'Safety', 'Aggregates', 'Cementitious Products', 'Other'
   ];
+
+  const categoryOptions = categories.map(cat => ({ label: cat, value: cat }));
+  const unitOptions = measurementUnits.map(unit => ({ label: unit, value: unit }));
 
   return (
     <div className="flex flex-col h-screen">
@@ -112,17 +117,9 @@ const AddProduct: React.FC = () => {
       <Sidemenu />
       <div className="main-content app-content p-6">
         <div className="container-fluid">
-          <Breadcrumb
-            title="Add Product"
-            links={[{ text: "Inventory", link: "/inventory" }]}
-            active="Add Product"
-          />
+          <Breadcrumb title="Add Product" links={[{ text: "Inventory", link: "/inventory" }]} active="Add Product" />
 
-          {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-              {error}
-            </div>
-          )}
+          {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">{error}</div>}
 
           {showModal && (
             <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
@@ -130,167 +127,68 @@ const AddProduct: React.FC = () => {
                 <h3 className="text-green-500 font-semibold text-xl mb-4">Success!</h3>
                 <p className="text-lg">{successMessage}</p>
                 <div className="mt-4 flex justify-around">
-                  <button
-                    onClick={() => navigate('/inventory')}
-                    className="bg-blue-600 text-white py-2 px-6 rounded-lg hover:bg-blue-700"
-                  >
-                    Yes, Go to Inventory
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowModal(false);
-                      setFormData({
-                        name: '',
-                        sku: '',
-                        unitPrice: '',
-                        quantity: '',
-                        unitOfMeasurement: '',
-                        category: ''
-                      });
-                    }}
-                    className="bg-gray-600 text-white py-2 px-6 rounded-lg hover:bg-gray-700"
-                  >
-                    No, Stay Here
-                  </button>
+                  <button onClick={() => navigate('/inventory')} className="bg-blue-600 text-white py-2 px-6 rounded-lg hover:bg-blue-700">Yes, Go to Inventory</button>
+                  <button onClick={() => {
+                    setShowModal(false);
+                    setFormData({ name: '', sku: '', unitPrice: '', quantity: '', unitOfMeasurement: '', category: '' });
+                  }} className="bg-gray-600 text-white py-2 px-6 rounded-lg hover:bg-gray-700">No, Stay Here</button>
                 </div>
               </div>
             </div>
           )}
 
           <div className="flex flex-col mt-10 items-center">
-            <div className="bg-white shadow rounded-2xl p-6 w-full max-w-2xl relative" style={{ maxWidth: "1000px" }}>
-              {/* Cancel button in top-right corner */}
-              <button
-                type="button"
-                onClick={() => navigate('/inventory')}
-                className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-xl"
-                title="Cancel"
-              >
-                ✕
-              </button>
-
+            <div className="bg-white shadow rounded-2xl p-6 w-full" style={{ maxWidth: "1000px" }}>
+              <button type="button" onClick={() => navigate('/inventory')} className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-xl" title="Cancel">✕</button>
               <h2 className="text-xl font-bold mb-6 text-center">Add New Product</h2>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-gray-700 text-sm font-bold mb-2">Product Name*</label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleChange}
-                      className="border border-gray-300 p-2 rounded w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="e.g., 2x4 Lumber"
+                    <label className="text-sm font-semibold block mb-1">Product Name*</label>
+                    <input type="text" name="name" value={formData.name} onChange={handleChange} className="border border-gray-300 p-2 rounded w-full" placeholder="e.g., 2x4 Lumber" />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-semibold block mb-1">SKU*</label>
+                    <input type="text" name="sku" value={formData.sku} onChange={handleChange} className="border border-gray-300 p-2 rounded w-full" placeholder="e.g., LUM-2X4-8FT" />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-semibold block mb-1">Category</label>
+                    <Select
+                      value={formData.category ? { label: formData.category, value: formData.category } : null}
+                      onChange={(selected) => handleSelectChange("category", selected?.value || "")}
+                      options={categoryOptions}
+                      placeholder="Select Category"
+                      isClearable
                     />
                   </div>
 
                   <div>
-                    <label className="block text-gray-700 text-sm font-bold mb-2">SKU(Stock Keeping Unit)*</label>
-                    <input
-                      type="text"
-                      name="sku"
-                      value={formData.sku}
-                      onChange={handleChange}
-                      className="border border-gray-300 p-2 rounded w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="e.g., LUM-2X4-8FT"
+                    <label className="text-sm font-semibold block mb-1">Unit of Measurement*</label>
+                    <Select
+                      value={formData.unitOfMeasurement ? { label: formData.unitOfMeasurement, value: formData.unitOfMeasurement } : null}
+                      onChange={(selected) => handleSelectChange("unitOfMeasurement", selected?.value || "")}
+                      options={unitOptions}
+                      placeholder="Select Unit"
+                      isClearable
                     />
                   </div>
 
                   <div>
-                    <label className="block text-gray-700 text-sm font-bold mb-2">Category</label>
-                    <Listbox
-                      value={formData.category}
-                      onChange={(value) =>
-                        setFormData(prev => ({ ...prev, category: value }))
-                      }
-                    >
-                      <div className="relative">
-                        <Listbox.Button as="button" className="border border-gray-300 p-2 rounded w-full text-left focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                          {formData.category || 'Select category'}
-                        </Listbox.Button>
-                        <Listbox.Options className="absolute z-10 w-full bg-white shadow-md max-h-40 overflow-y-auto mt-1 rounded-lg border border-gray-300 focus:outline-none">
-                          {categories.map((category) => (
-                            <Listbox.Option
-                              key={category}
-                              value={category}
-                              as="div"
-                              className={({ active }) =>
-                                `${active ? 'bg-blue-100' : ''} p-2 cursor-pointer rounded`
-                              }
-                            >
-                              {category}
-                            </Listbox.Option>
-                          ))}
-                        </Listbox.Options>
-                      </div>
-                    </Listbox>
+                    <label className="text-sm font-semibold block mb-1">Unit Price (₱)*</label>
+                    <input type="number" step="0.01" min="0" name="unitPrice" value={formData.unitPrice} onChange={handleChange} className="border border-gray-300 p-2 rounded w-full" placeholder="0.00" />
                   </div>
 
                   <div>
-                    <label className="block text-gray-700 text-sm font-bold mb-2">Unit of Measurement*</label>
-                    <Listbox
-                      value={formData.unitOfMeasurement}
-                      onChange={(value) =>
-                        setFormData(prev => ({ ...prev, unitOfMeasurement: value }))
-                      }
-                    >
-                      <div className="relative">
-                        <Listbox.Button as="button" className="border border-gray-300 p-2 rounded w-full text-left focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                          {formData.unitOfMeasurement || 'Select unit'}
-                        </Listbox.Button>
-                        <Listbox.Options className="absolute z-10 w-full bg-white shadow-md max-h-40 overflow-y-auto mt-1 rounded-lg border border-gray-300 focus:outline-none">
-                          {measurementUnits.map(unit => (
-                            <Listbox.Option
-                              key={unit}
-                              value={unit}
-                              as="div"
-                              className={({ active }) =>
-                                `${active ? 'bg-blue-100' : ''} p-2 cursor-pointer rounded`
-                              }
-                            >
-                              {unit}
-                            </Listbox.Option>
-                          ))}
-                        </Listbox.Options>
-                      </div>
-                    </Listbox>
-                  </div>
-
-                  <div>
-                    <label className="block text-gray-700 text-sm font-bold mb-2">Unit Price (₱)*</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      name="unitPrice"
-                      value={formData.unitPrice}
-                      onChange={handleChange}
-                      className="border border-gray-300 p-2 rounded w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="0.00"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-gray-700 text-sm font-bold mb-2">Initial Quantity*</label>
-                    <input
-                      type="number"
-                      min="0"
-                      name="quantity"
-                      value={formData.quantity}
-                      onChange={handleChange}
-                      className="border border-gray-300 p-2 rounded w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="0"
-                    />
+                    <label className="text-sm font-semibold block mb-1">Initial Quantity*</label>
+                    <input type="number" min="0" name="quantity" value={formData.quantity} onChange={handleChange} className="border border-gray-300 p-2 rounded w-full" placeholder="0" />
                   </div>
                 </div>
 
-                <div className="flex justify-end pt-4">
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="bg-green-600 hover:bg-green-700 text-white py-2 px-6 rounded-lg w-full transition disabled:opacity-70 disabled:cursor-not-allowed"
-                  >
+                <div className="pt-4">
+                  <button type="submit" disabled={isLoading} className="bg-green-600 hover:bg-green-700 text-white py-2 px-6 rounded-lg w-full transition disabled:opacity-70">
                     {isLoading ? (
                       <span className="flex items-center justify-center">
                         <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

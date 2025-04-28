@@ -2,24 +2,26 @@ import React, { useEffect } from "react";
 
 interface ModalProps {
   isOpen: boolean;
+  title: React.ReactNode;
+  message: React.ReactNode;
   onClose: () => void;
-  onConfirm?: () => void;
   onCancel?: () => void;
-  title: string;
-  message: string;
+  onConfirm?: () => void;
   isLoading?: boolean;
   hideFooter?: boolean;
+  className?: string;
 }
 
 const Modal: React.FC<ModalProps> = ({
   isOpen,
-  onClose,
-  onConfirm,
-  onCancel,
   title,
   message,
+  onClose,
+  onCancel,
+  onConfirm,
   isLoading = false,
   hideFooter = false,
+  className = "", // fallback empty string
 }) => {
   useEffect(() => {
     const handleEscapeKey = (e: KeyboardEvent) => {
@@ -44,19 +46,24 @@ const Modal: React.FC<ModalProps> = ({
       role="dialog"
       aria-labelledby="modal-title"
       aria-describedby="modal-description"
-      className="fixed inset-0 flex justify-center items-center bg-gray-900 bg-opacity-50 z-50 transition-opacity opacity-100"
+      className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-50 z-50"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
-        className="bg-white rounded-lg p-6 w-96 shadow-lg transform transition-all duration-300 scale-100 hover:scale-105"
+        className={`bg-white rounded-lg p-6 max-w-lg w-full shadow-lg transition-transform transform scale-100 ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id="modal-title" className="text-xl font-semibold mb-4">
           {title}
         </h2>
-        <p id="modal-description" className="text-gray-700 mb-6">
+
+        {/* Scrollable content area */}
+        <div
+          id="modal-description"
+          className="text-gray-700 mb-6 overflow-y-auto max-h-[400px]" // Adjust max height here
+        >
           {message}
-        </p>
+        </div>
 
         {isLoading && (
           <div className="flex justify-center mb-6">
@@ -64,18 +71,21 @@ const Modal: React.FC<ModalProps> = ({
           </div>
         )}
 
+        {/* Footer with action buttons */}
         {!hideFooter && (
-          <div className="flex justify-end space-x-4">
-            <button
-              onClick={onCancel}
-              className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
-            >
-              Cancel
-            </button>
+          <div className="flex justify-end space-x-4 mt-4">
+            {onCancel && (
+              <button
+                onClick={onCancel}
+                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+            )}
             {onConfirm && (
               <button
                 onClick={onConfirm}
-                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
               >
                 Confirm
               </button>

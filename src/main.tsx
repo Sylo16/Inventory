@@ -10,13 +10,13 @@ import Dashboard from './pages/dashboard';
 import HomePage from './pages/homepage';
 import Login from './pages/login';
 {/*Management*/}
-import Sales from './pages/mainboard/Sales';
 import Inventory from './pages/InventoryInfo/Inventory';
 import AddProduct from './pages/InventoryInfo/AddProduct';
 import Reports from './pages/mainboard/Reports';
 import DamagedProducts from './pages/mainboard/DamageProducts';
 import CustomerPurchased from './pages/CustomerInfo/CustomerList';
 import CustomerAdd from './pages/CustomerInfo/CustomerAdd';
+
 
 
 
@@ -31,7 +31,6 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/inventory" element={<Inventory />} />
         <Route path="/inventory/addproduct" element={<AddProduct />} />
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/sales" element={<Sales />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/customerpurchased" element={<CustomerPurchased />} />
         <Route path="/customerpurchased/addcustomer" element={<CustomerAdd />} />

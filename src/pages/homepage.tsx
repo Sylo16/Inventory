@@ -19,7 +19,7 @@ function HomePage() {
     return (
         <div className="min-vh-100 d-flex flex-column">
             {/* Header Section */}
-            <nav className="navbar navbar-expand-lg navbar-light bg-light shadow-sm px-4 py-3">
+            <nav className="navbar navbar-expand-lg navbar-light shadow-sm px-4 py-3 sticky top-0 bg-white">
                 <div className="container-fluid d-flex justify-content-between align-items-center">
                     {/* Logo */}
                     <div className="d-flex align-items-center">
@@ -29,7 +29,7 @@ function HomePage() {
 
                     {/* Navigation Links */}
                     <ul className="navbar-nav d-flex align-items-center text-danger fw-bold fs-5">
-                        {['Home', 'Features', 'About Us', 'Contact'].map((section, index) => (
+                        {['Home', 'Features', 'Contact'].map((section, index) => (
                             <li className="nav-item mx-3" key={index}>
                                 <ScrollLink 
                                     className="nav-link"
@@ -100,26 +100,27 @@ function HomePage() {
                     ))}
                 </div>
             </div>
+
             {/* Footer Section */}
-            <footer className="bg-dark text-white text-center py-4 mt-auto">
+            <footer className="bg-dark text-white text-center py-2 mt-auto">
                 <div className="container">
-                    <div className="row mb-3">
-                        <div className="col-md-4"><a href="#" className="text-white">Privacy Policy</a></div>
-                        <div className="col-md-4"><a href="#" className="text-white">Terms of Service</a></div>
-                        <div className="col-md-4"><a href="#contact" className="text-white">Contact Information</a></div>
+                    {/* Centered Terms of Service */}
+                    <div className="mb-2">
+                        <a className="text-white fw-bold">Terms of Service</a>
                     </div>
-                    
                     {/* Social Media Links */}
-                    <div className="d-flex justify-content-center gap-4 mb-3">
-                        {[
-                            { href: "https://www.facebook.com/profile.php?id=100078575220516", icon: "bi-facebook" },   
-                        ].map((social, index) => (
-                            <a key={index} href={social.href} className="text-white fs-4">
-                                <i className={`bi ${social.icon}`}></i>
-                            </a>
-                        ))}
+                    <div className="d-flex justify-content-center gap-4 mb-2">
+                        <a href="https://www.facebook.com/profile.php?id=100078575220516" className="text-white fs-4">
+                            <i className="bi bi-facebook"></i>
+                        </a>
                     </div>
-                    <div>© 2025 JARED Construction Supplies Trading. All rights reserved.</div>
+                    {/* Contact Details */}
+                    <div id="contact" className="mb-2">
+                        <p className="mb-1 small">📞 +63 994 898 0546</p>
+                        <a href="mailto:jared.construction.supplies@gmail.com" className="text-white">📧 jared.construction.supplies@gmail.com</a>
+                        <p className="small">📍 National Highway Purok 5, Tablon, Cagayan de Oro, Philippines</p>
+                    </div>
+                    <div className="small">© 2025 JARED Construction Supplies Trading. ❤ All rights reserved.</div>
                 </div>
             </footer>
         </div>
