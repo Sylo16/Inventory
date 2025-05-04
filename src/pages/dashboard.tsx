@@ -3,34 +3,19 @@ import Header from "../layouts/header";
 import Sidemenu from "../layouts/sidemenu";
 import logo from "../assets/images/faces/14.jpg";
 import { FaShoppingCart, FaBoxes, FaMoneyBillWave, FaExclamationTriangle } from "react-icons/fa";
-import { GiBrickWall, GiConcreteBag } from "react-icons/gi";
 import Breadcrumb from "../components/breadcrumbs";
-import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
-import api from "../api";
-
+import { Suspense } from 'react';
+import DamagedProductsWidgetWithErrorBoundary from '../components/DamagedProductsWidgetWithErrorBoundary';
+import API from "../api";
 function Dashboard() {
     const [showAllProducts, setShowAllProducts] = useState(false);
-
     const [stats, setStats] = useState([
         { title: 'Total Sales', value: '₱0', icon: <FaShoppingCart className="text-indigo-500" />, description: 'Today: ₱0 | This Month: ₱0', trend: 'N/A' },
-        { title: 'Total Revenue', value: '₱0', icon: <FaMoneyBillWave className="text-green-500" />, description: 'Gross: ₱0 | Net: ₱0', trend: 'N/A' },
+        { title: 'Total Revenue', value: '₱0', icon: <FaMoneyBillWave className="text-green-500" />, description: '₱0', trend: 'N/A' },
         { title: 'Inventory', value: '0 Items', icon: <FaBoxes className="text-orange-500" />, description: '0 Categories', trend: 'N/A' },
         { title: 'Critical Alerts', value: '0 Items', icon: <FaExclamationTriangle className="text-red-500" />, description: '0 Low stock | 0 Out of stock', trend: 'N/A' }
     ]);
-
-    const [salesData, setSalesData] = useState([
-        { month: 'Jan', sales: 0 }, { month: 'Feb', sales: 0 }, { month: 'Mar', sales: 0 },
-        { month: 'Apr', sales: 0 }, { month: 'May', sales: 0 }, { month: 'Jun', sales: 0 }
-    ]);
-
-    const [categorySales, setCategorySales] = useState([
-        { category: 'Cement', sales: 0, icon: <GiConcreteBag />, color: '#FF6384' },
-        { category: 'Gravel & Sand', sales: 0, icon: <GiBrickWall />, color: '#36A2EB' },
-        { category: 'Structural Steel', sales: 0, color: '#FFCE56' },
-        { category: 'Bricks & Blocks', sales: 0, color: '#4BC0C0' },
-        { category: 'Lumber & Plywood', sales: 0, color: '#9966FF' }
-    ]);
-
+   
     const [topSellingProducts, setTopSellingProducts] = useState([
         { name: 'N/A', sales: '₱0', quantity: '0', trend: 'N/A' },
         { name: 'N/A', sales: '₱0', quantity: '0', trend: 'N/A' },
@@ -44,15 +29,11 @@ function Dashboard() {
         { update: 'N/A', time: 'N/A', priority: 'medium', action: 'N/A' }
     ]);
 
-    const COLORS = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'];
-
     useEffect(() => {
-        api.get('/dashboard-data')
+        API.get('/dashboard-data')
             .then(response => {
                 const data = response.data;
-    
-                // Ensure the response structure is correct
-                console.log(data);
+                console.log("Dashboard Data:", data); // helpful for debugging
     
                 setStats([
                     { 
@@ -66,7 +47,7 @@ function Dashboard() {
                         title: 'Total Revenue', 
                         value: `₱${data.total_revenue ?? 0}`, 
                         icon: <FaMoneyBillWave className="text-green-500" />, 
-                        description: `Gross: ₱${data.gross_revenue ?? 0} | Net: ₱${data.net_revenue ?? 0}`,
+                        description: `₱${data.gross_revenue ?? 0}`,
                         trend: data.revenue_trend ?? 'N/A'
                     },
                     { 
@@ -85,12 +66,8 @@ function Dashboard() {
                     }
                 ]);
     
-                setSalesData(data.sales_chart ?? []);
-                setCategorySales(data.category_sales ?? []);
                 setTopSellingProducts(data.top_selling_products ?? []);
                 setRecentUpdates(data.recent_updates ?? []);
-         
-
             })
             .catch(error => {
                 console.error("Dashboard data fetch error:", error);
@@ -153,155 +130,26 @@ function Dashboard() {
                         </div>
                     </div>
 
-                    {/* Main Analytics Section */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-6">
-                        
-                        {/* Sales Analytics */}
-                        <div className="lg:col-span-2 box shadow-sm rounded-xl p-5 bg-white">
-                            <div className="flex justify-between items-center mb-4">
-                                <h2 className="font-bold text-lg text-gray-800 flex items-center">
-                                    <span className="bg-blue-100 p-2 rounded-lg mr-2 text-blue-600">📈</span>
-                                    Sales Analytics
-                                </h2>
-                                <select className="border rounded-lg px-3 py-1 text-sm bg-gray-50">
-                                    <option>Last 6 Months</option>
-                                    <option>Last Year</option>
-                                    <option>Year to Date</option>
-                                </select>
-                            </div>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <LineChart data={salesData}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                    <XAxis dataKey="month" />
-                                    <YAxis />
-                                    <Tooltip 
-                                        formatter={(value) => [`₱${value.toLocaleString()}`, 'Sales']}
-                                    />
-                                    <Legend />
-                                    <Line 
-                                        type="monotone" 
-                                        dataKey="sales" 
-                                        stroke="#3B82F6" 
-                                        strokeWidth={2} 
-                                        dot={{ r: 4 }} 
-                                        activeDot={{ r: 6 }} 
-                                        name="Sales (₱)" 
-                                    />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </div>
+                    
 
-                        {/* Sales by Category - Pie Chart */}
-                        <div className="box shadow-sm rounded-xl p-5 bg-white">
-                            <h2 className="font-bold text-lg text-gray-800 flex items-center mb-4">
-                                <span className="bg-green-100 p-2 rounded-lg mr-2 text-green-600">📊</span>
-                                Sales by Category
-                            </h2>
-                            <ResponsiveContainer width="100%" height={250}>
-                                <PieChart>
-                                    <Pie
-                                        data={categorySales}
-                                        cx="50%"
-                                        cy="50%"
-                                        labelLine={false}
-                                        outerRadius={80}
-                                        fill="#8884d8"
-                                        dataKey="sales"
-                                        nameKey="category"
-                                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                                    >
-                                        {categorySales.map((_, index) => (
-                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip 
-                                        formatter={(value) => [`₱${value.toLocaleString()}`, 'Sales']}
-                                    />
-                                    <Legend />
-                                </PieChart>
-                            </ResponsiveContainer>
-                            <div className="mt-2 grid grid-cols-2 gap-2">
-                                {categorySales.map((category, index) => (
-                                    <div key={index} className="flex items-center text-sm">
-                                        <span className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: COLORS[index] }}></span>
-                                        {category.category}: ₱{category.sales.toLocaleString()}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
+                       
 
-                    {/* Bottom Section */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
                         
-                        {/* Top-Selling Products */}
-                    <div className="box shadow-sm rounded-xl p-5 bg-white">
-                        <h2 className="font-bold text-lg text-gray-800 flex items-center mb-4">
-                            <span className="bg-yellow-100 p-2 rounded-lg mr-2 text-yellow-600">🏆</span>
-                            Top-Selling Products
-                        </h2>
-                        <div className="space-y-3">
-                            {(showAllProducts ? topSellingProducts : topSellingProducts.slice(0, 5)).map((product, index) => (
-                                <div key={index} className="flex justify-between items-center p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
-                                    <div>
-                                        <p className="font-medium text-gray-800">{product.name}</p>
-                                        <p className="text-xs text-gray-500">{product.quantity}</p>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="font-bold text-green-600">{product.sales}</p>
-                                        <p className={`text-xs ${product.trend.includes('↑') ? 'text-green-500' : 'text-red-500'}`}>
-                                            {product.trend}
-                                        </p>
-                                    </div>
+                        {/* Damaged Products Widget */}
+                        <div className="lg:col-span-1">
+                            <Suspense fallback={
+                                <div className="bg-white shadow rounded-lg p-6 h-full animate-pulse border border-gray-200">
+                                    <div className="h-6 w-3/4 bg-gray-200 rounded mb-4"></div>
+                                    <div className="h-4 w-full bg-gray-200 rounded mb-2"></div>
+                                    <div className="h-4 w-5/6 bg-gray-200 rounded"></div>
                                 </div>
-                            ))}
+                            }>
+                                <DamagedProductsWidgetWithErrorBoundary />
+                            </Suspense>
                         </div>
-                        <button 
-                            className="w-full mt-4 py-2 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
-                            onClick={() => setShowAllProducts(prev => !prev)}
-                        >
-                            {showAllProducts ? 'Show Less' : 'View Full Product Report'}
-                        </button>
                     </div>
-
-
-                        {/* Recent Updates */}
-                        <div className="box shadow-sm rounded-xl p-5 bg-white">
-                            <h2 className="font-bold text-lg text-gray-800 flex items-center mb-4">
-                                <span className="bg-red-100 p-2 rounded-lg mr-2 text-red-600">🔔</span>
-                                Recent Updates & Alerts
-                            </h2>
-                            <div className="space-y-3">
-                                {recentUpdates.map((update, index) => (
-                                    <div 
-                                        key={index} 
-                                        className={`p-3 rounded-lg shadow-sm transition-all ${
-                                            update.priority === 'critical' ? 'bg-red-50 border-l-4 border-red-500' :
-                                            update.priority === 'high' ? 'bg-blue-50 border-l-4 border-blue-500' :
-                                            'bg-gray-50 border-l-4 border-gray-500'
-                                        }`}
-                                    >
-                                        <p className="text-sm font-medium text-gray-800">{update.update}</p>
-                                        <div className="flex justify-between items-center mt-1">
-                                            <span className="text-xs text-gray-500">{update.time}</span>
-                                            <button className={`text-xs px-2 py-1 rounded ${
-                                                update.priority === 'critical' ? 'bg-red-100 text-red-700' :
-                                                update.priority === 'high' ? 'bg-blue-100 text-blue-700' :
-                                                'bg-gray-100 text-gray-700'
-                                            }`}>
-                                                {update.action}
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                            <button className="w-full mt-4 py-2 text-sm bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
-                                View All Notifications
-                            </button>
-                        </div>      
-                    </div>                  
                 </div>
-            </div>
+             
             <div className="footer bg-white shadow-lg rounded-2xl p-4 mt-10">
                 <p className="text-center text-gray-600">© 2025 Sales and Inventory for JARED Construction Supplies and Trading. All rights reserved.</p>
             </div>

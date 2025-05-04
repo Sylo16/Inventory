@@ -99,14 +99,18 @@ const AddProduct: React.FC = () => {
     'Meter', 'Centimeter', 'Square Meter', 'Cubic Meter', 'Set',
     'Bag (kg or lb)', 'Cubic Yard', 'Ton', 'Roll (meter/foot)', 'Sheet (4x8 ft)',
     'Board Foot', 'Length (Meter, Foot)', 'Piece (length in meters/feet)',
-    'Box (sq.m coverage)', 'Tube', 'Cartridge', 'Liter (gallon)', 'Box (piece)', 'Roll', 'Sack'
-  ];
-
+    'Box (sq.m coverage)', 'Tube', 'Cartridge', 'Liter (gallon)', 'Box (piece)', 'Roll', 'Sack', 'Bundle'
+  ].sort();
+  
   const categories = [
     'Lumber', 'Fencing Materials', 'Tools', 'Electrical',
     'Plumbing', 'Concrete', 'Roofing', 'Paint', 'Metal Products',
     'Safety', 'Aggregates', 'Cementitious Products', 'Other'
-  ];
+  ].sort();
+  
+  console.log('Measurement Units:', measurementUnits);
+  console.log('Categories:', categories);
+  
 
   const categoryOptions = categories.map(cat => ({ label: cat, value: cat }));
   const unitOptions = measurementUnits.map(unit => ({ label: unit, value: unit }));

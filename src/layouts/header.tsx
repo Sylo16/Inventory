@@ -34,9 +34,9 @@ function Header() {
                         <div className="relative">
                             <button
                                 onClick={() => setDropdownOpen(!dropdownOpen)}
-                                className="flex items-center bg-red-500 text-white p-2 rounded-full transition-transform duration-200 transform hover:scale-105 hover:bg-blue-700"
+                                className="flex items-center bg-gray-500 text-white p-2 rounded-full transition-transform duration-200 transform hover:scale-105 hover:bg-blue-700"
                             >
-                                <LogOut className="w-6 h-6" color="#213448" />
+                                <LogOut className="w-6 h-6 text-white" />
                             </button>
 
                             {dropdownOpen && (

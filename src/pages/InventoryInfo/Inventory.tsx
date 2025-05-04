@@ -245,10 +245,10 @@ const Inventory: React.FC = () => {
           <div className="overflow-x-auto">
             <table className="w-full border mt-2 text-center text-md">
               <thead>
-                <tr className="bg-gray-200">
+                <tr className="bg-gray-200 hover:bg-blue-50 transition-all duration-150 ease-in-out">
                   <th className="py-3 px-4 border">Product</th>
                   <th className="py-3 px-4 border">Category</th>
-                  <th className="py-3 px-4 border">Quantity</th>
+                  <th className="py-3 px-4 border">Quantity (Status)</th>
                   <th className="py-3 px-4 border">Unit</th>
                   <th className="py-3 px-4 border">Price</th>
                   <th className="py-3 px-4 border">Last Updated</th>
@@ -258,15 +258,41 @@ const Inventory: React.FC = () => {
               <tbody>
                 {visibleItems.map((item) => (
                   <tr key={item.id} className={`border hover:bg-gray-50 ${item.hidden ? 'blur-sm opacity-50' : ''}`}>
-                    <td className="py-3 px-4">{item.name}</td>
+                    <td className="py-3 px-4 text-md font-medium text-gray-900">{item.name}</td>
                     <td className="py-3 px-4">{item.category}</td>
-                    <td className="py-3 px-4"><span className={`px-2 py-1 rounded ${item.quantity < 10
-                        ? 'bg-red-500 text-white'
-                        : item.quantity < 50
-                        ? 'bg-yellow-200 text-black'
-                        : 'bg-green-500 text-white'
-                        }`}> {item.quantity}
-                      </span>
+                    <td className="py-3 px-4">
+                      <div className="flex flex-col items-center">
+                        <span className={`px-2 py-1 rounded font-semibold text-sm ${item.quantity === 0
+                          ? 'bg-gray-500 text-white' // Gray for out of stock
+                          : item.quantity < 10
+                          ? 'bg-red-500 text-white'
+                          : item.quantity < 50
+                          ? 'bg-yellow-200 text-black'
+                          : 'bg-green-500 text-white'
+                          }`}>
+                          {item.quantity}
+                        </span>
+                        {item.quantity === 0 && (
+                          <span className="text-xs text-gray-700 mt-1 font-medium bg-gray-100 px-2 py-0.5 rounded">
+                            Out of Stock
+                          </span>
+                        )}
+                        {item.quantity > 0 && item.quantity < 10 && (
+                          <span className="text-xs text-red-600 mt-1 font-medium bg-red-100 px-2 py-0.5 rounded">
+                            Critical Stock
+                          </span>
+                        )}
+                        {item.quantity >= 10 && item.quantity < 50 && (
+                          <span className="text-xs text-yellow-800 mt-1 font-medium bg-yellow-100 px-2 py-0.5 rounded">
+                            Low Stock
+                          </span>
+                        )}
+                        {item.quantity >= 50 && (
+                          <span className="text-xs text-green-800 mt-1 font-medium bg-green-100 px-2 py-0.5 rounded">
+                            In Stock
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3 px-4">{item.unitOfMeasurement}</td>
                     <td className="py-3 px-4">₱{item.unitPrice.toFixed(2)}</td>

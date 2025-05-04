@@ -14,6 +14,8 @@ type ProductOption = {
   label: string;
   category: string;
   unit: string;
+  quantity: number; // Added quantity to track stock
+  isDisabled?: boolean; // Added to disable out of stock products
 };
 
 type CategoryOption = { value: string; label: string };
@@ -37,6 +39,8 @@ const AddCustomer: React.FC = () => {
           label: prod.name,
           category: prod.category,
           unit: prod.unit_of_measurement,
+          quantity: prod.quantity,
+          isDisabled: prod.quantity <= 0 // Disable if out of stock
         }));
         setAllProducts(productData);
       } catch (error) {
@@ -48,10 +52,14 @@ const AddCustomer: React.FC = () => {
     fetchProducts();
   }, []);
 
-  const getFilteredProducts = (category: string, unit: string) => {
+  const getFilteredProducts = (category: string, unit: string): ProductOption[] => {
     return allProducts.filter(
       (product) => (!category || product.category === category) && (!unit || product.unit === unit)
-    );
+    ).map(product => ({
+      ...product,
+      label: product.quantity <= 0 ? `${product.label} (Out of Stock)` : product.label,
+      isDisabled: product.quantity <= 0
+    }));
   };
 
   const getFilteredUnits = (category: string, productName: string): UnitOption[] => {
@@ -100,6 +108,16 @@ const AddCustomer: React.FC = () => {
     } else if (products.some((p) => isNaN(Number(p.quantity)) || Number(p.quantity) <= 0)) {
       newErrors.products = "Quantity must be a positive number.";
       valid = false;
+    } else {
+      // Additional validation for stock availability
+      for (const product of products) {
+        const selectedProduct = allProducts.find(p => p.value === product.productName);
+        if (selectedProduct && Number(product.quantity) > selectedProduct.quantity) {
+          newErrors.products = `Quantity for ${product.productName} exceeds available stock (${selectedProduct.quantity}).`;
+          valid = false;
+          break;
+        }
+      }
     }
 
     setErrors(newErrors);
@@ -171,8 +189,6 @@ const AddCustomer: React.FC = () => {
       alert("There was a problem saving the customer.");
     }
   };
-  
-  
 
   return (
     <>
@@ -231,61 +247,115 @@ const AddCustomer: React.FC = () => {
               <h5 className="font-medium mb-4">Materials/Products Purchased</h5>
 
               {products.map((product, index) => (
-                <div key={index} className="flex flex-wrap gap-4 mb-4 items-center">
-                  <div className="flex flex-col flex-1 min-w-[150px]">
-                    <label className="text-sm font-semibold block mb-1">Category</label>
-                    <Select
-                      value={product.category ? { label: product.category, value: product.category } : null}
-                      onChange={(selected) => handleProductChange(index, "category", selected?.value || "")}
-                      options={getCategoryOptions()}
-                      placeholder="Select Category"
-                      isClearable
-                    />
-                  </div>
-
-                  <div className="flex flex-col flex-1 min-w-[150px]">
-                    <label className="text-sm font-semibold block mb-1">Product Name</label>
-                    <Select
-                      value={product.productName ? { label: product.productName, value: product.productName } : null}
-                      onChange={(selected) => handleProductChange(index, "productName", selected?.value || "")}
-                      options={getFilteredProducts(product.category, product.unit)}
-                      placeholder="Select Product"
-                      isClearable
-                    />
-                  </div>
-
-                  <div className="flex flex-col flex-1 min-w-[120px]">
-                    <label className="text-sm font-semibold block mb-1">Unit</label>
-                    <Select
-                      value={product.unit ? { label: product.unit, value: product.unit } : null}
-                      onChange={(selected) => handleProductChange(index, "unit", selected?.value || "")}
-                      options={getFilteredUnits(product.category, product.productName)}
-                      placeholder="Select Unit"
-                      isClearable
-                    />
-                  </div>
-
-                  <div className="flex flex-col min-w-[100px]">
-                    <label className="text-sm font-semibold block mb-1">Quantity</label>
-                    <input
-                      type="number"
-                      placeholder="Qty"
-                      value={product.quantity}
-                      onChange={(e) => handleProductChange(index, "quantity", e.target.value)}
-                      className="border border-gray-300 px-4 py-2 text-sm rounded w-full"
-                    />
-                  </div>
-
-                  {products.length > 1 && (
-                    <button
-                      onClick={() => removeProductRow(index)}
-                      className="text-red-500 font-bold text-lg"
-                      title="Remove product"
-                    >
-                      ×
-                    </button>
-                  )}
+                <div className="flex flex-wrap gap-4 mb-4 items-center">
+                {/* Category Select */}
+                <div className="flex flex-col flex-1 min-w-[150px]">
+                  <label className="text-sm font-semibold block mb-1">Category</label>
+                  <Select<CategoryOption>
+                    value={product.category ? { label: product.category, value: product.category } : null}
+                    onChange={(selected: CategoryOption | null) => {
+                      handleProductChange(index, "category", selected?.value || "");
+                      // Clear product and unit when category changes
+                      handleProductChange(index, "productName", "");
+                      handleProductChange(index, "unit", "");
+                    }}
+                    options={getCategoryOptions()}
+                    placeholder="Select Category"
+                    isClearable
+                    className="react-select-container"
+                    classNamePrefix="react-select"
+                    styles={{
+                      control: (base) => ({
+                        ...base,
+                        minHeight: '36px',
+                        fontSize: '14px'
+                      })
+                    }}
+                  />
                 </div>
+              
+                {/* Product Name Select - Disabled until category is selected */}
+                <div className="flex flex-col flex-1 min-w-[150px]">
+                  <label className="text-sm font-semibold block mb-1">Product Name</label>
+                  <Select<ProductOption>
+                    value={allProducts.find(p => p.value === product.productName) || null}
+                    onChange={(selected: ProductOption | null) => {
+                      handleProductChange(index, "productName", selected?.value || "");
+                      // Clear unit when product changes
+                      handleProductChange(index, "unit", "");
+                    }}
+                    options={getFilteredProducts(product.category, product.unit)}
+                    placeholder={product.category ? "Select Product" : "Select category first"}
+                    isClearable
+                    isDisabled={!product.category}
+                    isOptionDisabled={(option: ProductOption) => option.isDisabled || false}
+                    className="react-select-container"
+                    classNamePrefix="react-select"
+                    styles={{
+                      control: (base, { isDisabled }) => ({
+                        ...base,
+                        minHeight: '36px',
+                        fontSize: '14px',
+                        backgroundColor: isDisabled ? '#f3f4f6' : base.backgroundColor,
+                        cursor: isDisabled ? 'not-allowed' : 'pointer'
+                      }),
+                      option: (base, { isDisabled }) => ({
+                        ...base,
+                        color: isDisabled ? '#ccc' : base.color,
+                        cursor: isDisabled ? 'not-allowed' : 'pointer'
+                      })
+                    }}
+                  />
+                </div>
+              
+                {/* Unit Select - Disabled until product is selected */}
+                <div className="flex flex-col flex-1 min-w-[120px]">
+                  <label className="text-sm font-semibold block mb-1">Unit</label>
+                  <Select<UnitOption>
+                    value={product.unit ? { label: product.unit, value: product.unit } : null}
+                    onChange={(selected: UnitOption | null) => handleProductChange(index, "unit", selected?.value || "")}
+                    options={getFilteredUnits(product.category, product.productName)}
+                    placeholder={product.productName ? "Select Unit" : "Select product first"}
+                    isClearable
+                    isDisabled={!product.productName}
+                    className="react-select-container"
+                    classNamePrefix="react-select"
+                    styles={{
+                      control: (base, { isDisabled }) => ({
+                        ...base,
+                        minHeight: '36px',
+                        fontSize: '14px',
+                        backgroundColor: isDisabled ? '#f3f4f6' : base.backgroundColor,
+                        cursor: isDisabled ? 'not-allowed' : 'pointer'
+                      })
+                    }}
+                  />
+                </div>
+              
+                {/* Quantity Input - Disabled until unit is selected */}
+                <div className="flex flex-col min-w-[100px]">
+                  <label className="text-sm font-semibold block mb-1">Quantity</label>
+                  <input
+                    type="number"
+                    placeholder="Qty"
+                    value={product.quantity}
+                    onChange={(e) => handleProductChange(index, "quantity", e.target.value)}
+                    className="border border-gray-300 px-4 py-2 text-sm rounded w-full"
+                    min="1"
+                    disabled={!product.unit}
+                  />
+                </div>
+              
+                {products.length > 1 && (
+                  <button
+                    onClick={() => removeProductRow(index)}
+                    className="text-red-500 font-bold text-lg"
+                    title="Remove product"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
               ))}
 
               <button onClick={addProductRow} className="text-green-600 font-semibold mt-2 mb-4">

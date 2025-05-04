@@ -8,6 +8,7 @@ const Login: React.FC = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
     const [inputError, setInputError] = useState<{ username?: string; password?: string }>({});
     const navigate = useNavigate();
 
@@ -21,6 +22,7 @@ const Login: React.FC = () => {
         setInputError(errors);
 
         if (Object.keys(errors).length === 0) {
+            setIsLoading(true);
             try {
                 const response = await API.post('/login', {
                     username,
@@ -32,6 +34,8 @@ const Login: React.FC = () => {
                 navigate('/dashboard');
             } catch (error) {
                 setError('Invalid username or password');
+            } finally {
+                setIsLoading(false);
             }
         }
     };
@@ -57,6 +61,7 @@ const Login: React.FC = () => {
                             onChange={(e) => setUsername(e.target.value)}
                             placeholder="Enter your username" 
                             className="w-full p-4 text-lg border border-gray-300 rounded-xl"
+                            disabled={isLoading}
                         />
                         {inputError.username && <p className="text-red-500 text-sm mt-1">{inputError.username}</p>}
                     </div>
@@ -69,15 +74,25 @@ const Login: React.FC = () => {
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="Enter your password" 
                             className="w-full p-4 text-lg border border-gray-300 rounded-xl"
+                            disabled={isLoading}
                         />
                         {inputError.password && <p className="text-red-500 text-sm mt-1">{inputError.password}</p>}
                     </div>
 
                     <button 
                         type="submit"
-                        className="w-full py-4 bg-blue-600 text-white text-xl font-bold rounded-xl hover:bg-blue-700"
+                        className="w-full py-4 bg-blue-600 text-white text-xl font-bold rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                        disabled={isLoading}
                     >
-                        Login
+                        {isLoading ? (
+                            <>
+                                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Logging in...
+                            </>
+                        ) : 'Login'}
                     </button>
                 </form>
             </div>
