@@ -142,7 +142,7 @@ const AddProduct: React.FC = () => {
           )}
 
           <div className="flex flex-col mt-10 items-center">
-            <div className="bg-white shadow rounded-2xl p-6 w-full" style={{ maxWidth: "1000px" }}>
+            <div className="bg-white shadow rounded-2xl p-6 w-full relative" style={{ maxWidth: "1000px" }}>
               <button type="button" onClick={() => navigate('/inventory')} className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-xl" title="Cancel">✕</button>
               <h2 className="text-xl font-bold mb-6 text-center">Add New Product</h2>
 

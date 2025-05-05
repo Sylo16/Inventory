@@ -38,17 +38,17 @@ function Dashboard() {
                 setStats([
                     { 
                         title: 'Total Sales', 
-                        value: `₱${data.total_sales ?? 0}`, 
-                        icon: <FaShoppingCart className="text-blue-500" />, 
-                        description: `Today: ₱${data.today_sales ?? 0} | This Month: ₱${data.month_sales ?? 0}`,
-                        trend: data.sales_trend ?? 'N/A'
+                        value: '₱0', 
+                        icon: <FaShoppingCart className="text-indigo-500" />, 
+                        description: 'Today: ₱0 | This Month: ₱0', 
+                        trend: 'N/A' 
                     },
                     { 
                         title: 'Total Revenue', 
-                        value: `₱${data.total_revenue ?? 0}`, 
+                        value: '₱0', 
                         icon: <FaMoneyBillWave className="text-green-500" />, 
-                        description: `₱${data.gross_revenue ?? 0}`,
-                        trend: data.revenue_trend ?? 'N/A'
+                        description: '₱0', 
+                        trend: 'N/A' 
                     },
                     { 
                         title: 'Inventory', 
@@ -61,7 +61,7 @@ function Dashboard() {
                         title: 'Critical Alerts', 
                         value: `${data.critical_alerts ?? 0} Items`, 
                         icon: <FaExclamationTriangle className="text-red-500" />, 
-                        description: `${data.low_stock ?? 0} Low stock | ${data.out_of_stock ?? 0} Out of stock`,
+                        description: `${data.critical_stock ?? 0} Critical | ${data.low_stock ?? 0} Low stock | ${data.out_of_stock ?? 0} Out of stock`,
                         trend: data.alert_trend ?? 'N/A'
                     }
                 ]);
@@ -130,26 +130,63 @@ function Dashboard() {
                         </div>
                     </div>
 
-                    
-
-                       
-
-                        
-                        {/* Damaged Products Widget */}
-                        <div className="lg:col-span-1">
-                            <Suspense fallback={
-                                <div className="bg-white shadow rounded-lg p-6 h-full animate-pulse border border-gray-200">
-                                    <div className="h-6 w-3/4 bg-gray-200 rounded mb-4"></div>
-                                    <div className="h-4 w-full bg-gray-200 rounded mb-2"></div>
-                                    <div className="h-4 w-5/6 bg-gray-200 rounded"></div>
-                                </div>
-                            }>
-                                <DamagedProductsWidgetWithErrorBoundary />
-                            </Suspense>
+                    {/* Top Selling Products Section */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                        <div className="box bg-white rounded-xl shadow-sm p-5">
+                            <h2 className="text-lg font-semibold text-gray-800 mb-4">Top Selling Products</h2>
+                            <div className="divide-y divide-gray-200">
+                                {topSellingProducts.map((product, index) => (
+                                    <div key={index} className="flex justify-between py-2 items-center">
+                                        <div>
+                                            <p className="font-medium text-gray-700">{product.name}</p>
+                                            <p className="text-sm text-gray-500">Qty Sold: {product.quantity}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-sm font-semibold text-indigo-600">{product.sales}</p>
+                                            <p className="text-xs text-green-500">{product.trend}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="box bg-white rounded-xl shadow-sm p-5">
+                            <h2 className="text-lg font-semibold text-gray-800 mb-4">Recent Updates</h2>
+                            <ul className="space-y-3">
+                                {recentUpdates.map((update, index) => (
+                                    <li key={index} className="flex justify-between items-center border-b pb-2">
+                                        <div>
+                                            <p className="text-sm font-medium text-gray-700">{update.update}</p>
+                                            <p className="text-xs text-gray-500">{update.time}</p>
+                                        </div>
+                                        <span className={`text-xs px-2 py-1 rounded-full ${
+                                            update.priority === 'high' ? 'bg-red-100 text-red-600' :
+                                            update.priority === 'low' ? 'bg-green-100 text-green-600' :
+                                            'bg-yellow-100 text-yellow-600'
+                                        }`}>
+                                            {update.priority}
+                                        </span>
+                                    </li>
+                                ))}
+                            </ul>
                         </div>
                     </div>
-                </div>
-             
+
+                                
+                                {/* Damaged Products Widget */}
+                                <div className="lg:col-span-1">
+                                    <Suspense fallback={
+                                        <div className="bg-white shadow rounded-lg p-6 h-full animate-pulse border border-gray-200">
+                                            <div className="h-6 w-3/4 bg-gray-200 rounded mb-4"></div>
+                                            <div className="h-4 w-full bg-gray-200 rounded mb-2"></div>
+                                            <div className="h-4 w-5/6 bg-gray-200 rounded"></div>
+                                        </div>
+                                    }>
+                                        <DamagedProductsWidgetWithErrorBoundary />
+                                    </Suspense>
+                                </div>
+                            </div>
+                        </div>
+
             <div className="footer bg-white shadow-lg rounded-2xl p-4 mt-10">
                 <p className="text-center text-gray-600">© 2025 Sales and Inventory for JARED Construction Supplies and Trading. All rights reserved.</p>
             </div>

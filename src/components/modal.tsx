@@ -21,7 +21,7 @@ const Modal: React.FC<ModalProps> = ({
   onConfirm,
   isLoading = false,
   hideFooter = false,
-  className = "", // fallback empty string
+  className = "",
 }) => {
   useEffect(() => {
     const handleEscapeKey = (e: KeyboardEvent) => {
@@ -50,7 +50,7 @@ const Modal: React.FC<ModalProps> = ({
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
-        className={`bg-white rounded-lg p-6 max-w-lg w-full shadow-lg transition-transform transform scale-100 ${className}`}
+        className={`bg-white rounded-lg p-6 w-[90vw] max-w-6xl shadow-lg transition-transform transform scale-100 ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id="modal-title" className="text-xl font-semibold mb-4">
@@ -60,7 +60,7 @@ const Modal: React.FC<ModalProps> = ({
         {/* Scrollable content area */}
         <div
           id="modal-description"
-          className="text-gray-700 mb-6 overflow-y-auto max-h-[400px]" // Adjust max height here
+          className="text-gray-700 mb-6 overflow-y-auto max-h-[70vh]"
         >
           {message}
         </div>
@@ -96,5 +96,4 @@ const Modal: React.FC<ModalProps> = ({
     </div>
   );
 };
-
 export default Modal;

@@ -198,8 +198,8 @@ const AddCustomer: React.FC = () => {
         <div className="container-fluid">
           <Breadcrumb
             title="Add Customer"
-            links={[{ text: "Customers Purchased", link: "/customerpurchased" }]}
-            active="Register New Customer"
+            links={[{ text: "Customers Lists", link: "/customerpurchased" }]}
+            active="Add New Customer"
           />
           <div className="flex flex-col mt-10 items-center">
             <div className="bg-white shadow rounded-2xl p-6 w-full mx-auto relative" style={{ maxWidth: "1000px" }}>

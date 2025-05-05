@@ -17,19 +17,25 @@ const CustomerPurchased: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [customers, setCustomers] = useState<any[]>([]);
+  const [inventoryItems, setInventoryItems] = useState<any[]>([]);
 
+  // Fetch both customers and inventory items
   useEffect(() => {
-    const fetchCustomers = async () => {
+    const fetchData = async () => {
       try {
-        const response = await API.get("/customers");
-        setCustomers(response.data);
+        const [customersResponse, inventoryResponse] = await Promise.all([
+          API.get("/customers"),
+          API.get("/products")
+        ]);
+        setCustomers(customersResponse.data);
+        setInventoryItems(inventoryResponse.data);
       } catch (error) {
-        console.error("Error fetching customers:", error);
-        alert("Failed to fetch customer data.");
+        console.error("Error fetching data:", error);
+        alert("Failed to fetch data.");
       }
     };
 
-    fetchCustomers();
+    fetchData();
   }, []);
 
   useEffect(() => {
@@ -62,7 +68,7 @@ const CustomerPurchased: React.FC = () => {
               html(
                 `<div class="flex justify-center gap-2">
                   <button 
-                    class="bg-blue-500 text-white px-2 py-1 rounded text-xs view-btn"
+                    class="bg-yellow-500 text-white px-2 py-1 rounded text-xs view-btn"
                     data-customer='${JSON.stringify({
                       name: row.cells[1].data,
                       phone: row.cells[2].data,
@@ -73,13 +79,13 @@ const CustomerPurchased: React.FC = () => {
                   </button>
                   <a 
                     href="/customerpurchased/update" 
-                    class="bg-yellow-500 text-white px-2 py-1 rounded text-xs flex items-center update-btn"
+                    class="bg-blue-500 text-white px-2 py-1 rounded text-xs flex items-center update-btn"
                     data-customer='${JSON.stringify({
                       name: row.cells[1].data,
                       phone: row.cells[2].data,
                       purchaseDate: row.cells[3].data,
                     })}'>
-                    <i class="ri-pencil-line mr-1"></i> Update
+                    <i class="ri-pencil-line mr-1"></i> Add
                   </a>
                 </div>`
               ),
@@ -140,7 +146,7 @@ const CustomerPurchased: React.FC = () => {
           <Breadcrumb
             title="Manage Customers"
             links={[{ text: "Dashboard", link: "/dashboard" }]}
-            active="CustomersPurchasedList"
+            active="Customer Lists"
             buttons={
               <Link
                 to="/customerpurchased/addcustomer"
@@ -173,17 +179,20 @@ const CustomerPurchased: React.FC = () => {
         }
         message={
           <>
-          <div className="text-base">
-            <p>
-              <strong>Name:</strong> {selectedCustomer?.name}
-            </p>
-            <p>
-              <strong>Phone:</strong> {selectedCustomer?.phone}
-            </p>
-            <p>
-              <strong>Purchase Date:</strong> {selectedCustomer?.purchaseDate?.split("T")[0]}
-            </p>
-          </div>
+            {/* Original Customer Info Section - Unchanged */}
+            <div className="text-base">
+              <p>
+                <strong>Name:</strong> {selectedCustomer?.name}
+              </p>
+              <p>
+                <strong>Phone:</strong> {selectedCustomer?.phone}
+              </p>
+              <p>
+                <strong>Purchase Date:</strong> {selectedCustomer?.purchaseDate?.split("T")[0]}
+              </p>
+            </div>
+
+            {/* Products Table with Original Styling + Prices */}
             <div className="mt-6">
               <h3 className="text-lg font-semibold mb-4">Materials/Products Purchased</h3>
               <div className="overflow-x-auto">
@@ -194,17 +203,44 @@ const CustomerPurchased: React.FC = () => {
                       <th className="px-4 py-2 border">Category</th>
                       <th className="px-4 py-2 border">Unit</th>
                       <th className="px-4 py-2 border">Quantity</th>
+                      <th className="px-4 py-2 border">Unit Price</th>
+                      <th className="px-4 py-2 border">Total</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {selectedCustomer?.products?.map((product: any, index: number) => (
-                      <tr key={index} className="border-t">
-                        <td className="px-4 py-2 border">{product.product_name}</td>
-                        <td className="px-4 py-2 border">{product.category}</td>
-                        <td className="px-4 py-2 border">{product.unit}</td>
-                        <td className="px-4 py-2 border">{product.quantity}</td>
-                      </tr>
-                    ))}
+                    {selectedCustomer?.products?.map((product: any, index: number) => {
+                      const inventoryItem = inventoryItems.find(
+                        item => item.name === product.product_name || 
+                              item.id === product.product_id
+                      );
+                      const unitPrice = parseFloat(inventoryItem?.unit_price) || 0;
+                      const quantity = parseFloat(product.quantity) || 0;
+                      const totalPrice = unitPrice * quantity;
+                      
+                      return (
+                        <tr key={index} className="border-t">
+                          <td className="px-4 py-2 border">{product.product_name}</td>
+                          <td className="px-4 py-2 border">{product.category}</td>
+                          <td className="px-4 py-2 border">{product.unit}</td>
+                          <td className="px-4 py-2 border">{quantity}</td>
+                          <td className="px-4 py-2 border">₱{unitPrice.toFixed(2)}</td>
+                          <td className="px-4 py-2 border">₱{totalPrice.toFixed(2)}</td>
+                        </tr>
+                      );
+                    })}
+                    <tr className="bg-gray-50 font-semibold">
+                      <td colSpan={5} className="px-4 py-2 border text-right">Grand Total:</td>
+                      <td className="px-4 py-2 border">
+                        ₱{selectedCustomer?.products?.reduce((sum: number, product: any) => {
+                          const inventoryItem = inventoryItems.find(
+                            item => item.name === product.product_name || 
+                                  item.id === product.product_id
+                          );
+                          const unitPrice = parseFloat(inventoryItem?.unit_price) || 0;
+                          return sum + (unitPrice * (parseFloat(product.quantity) || 0));
+                        }, 0).toFixed(2)}
+                      </td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
@@ -213,7 +249,6 @@ const CustomerPurchased: React.FC = () => {
         }
         onClose={() => setIsModalOpen(false)}
         onCancel={() => setIsModalOpen(false)}
-        
       />
     </>
   );
