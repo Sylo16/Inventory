@@ -300,7 +300,7 @@ const DamagedProducts: React.FC = () => {
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
             {/* Left Section - Record Damaged Products Form */}
-            <div className="bg-white shadow-lg rounded-xl p-6 flex flex-col border border-gray-100">
+            <div className="bg-white shadow-sm rounded-xl p-6 flex flex-col border border-gray-100">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-gray-800 flex items-center">
                   <svg className="w-6 h-6 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -483,7 +483,7 @@ const DamagedProducts: React.FC = () => {
             </div>
   
             {/* Middle Section - Damaged Products Log */}
-            <div className="bg-white shadow-lg rounded-xl p-6 flex flex-col border border-gray-100">
+            <div className="bg-white shadow-sm rounded-xl p-6 flex flex-col border border-gray-100">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-2xl font-bold text-gray-800 flex items-center">
                   <svg className="w-6 h-6 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -570,7 +570,7 @@ const DamagedProducts: React.FC = () => {
             </div>
   
             {/* Right Section - Total Damaged Products */}
-            <div className="bg-white shadow-lg rounded-xl p-6 flex flex-col border border-gray-100">
+            <div className="bg-white shadow-sm rounded-xl p-6 flex flex-col border border-gray-100">
               <div className="flex items-center justify-between mb-6">
                 <h4 className="text-2xl font-bold text-gray-800 flex items-center">
                   <svg className="w-6 h-6 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

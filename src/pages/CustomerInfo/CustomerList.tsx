@@ -78,7 +78,7 @@ const CustomerPurchased: React.FC = () => {
                     <i class="bi bi-eye"></i> View
                   </button>
                   <a 
-                    href="/customerpurchased/update" 
+                    href="/customerpurchased/addnew" 
                     class="bg-blue-500 text-white px-2 py-1 rounded text-xs flex items-center update-btn"
                     data-customer='${JSON.stringify({
                       name: row.cells[1].data,

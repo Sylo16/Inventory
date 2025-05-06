@@ -68,16 +68,7 @@ function Sidemenu() {
                                     <span className="side-menu__label" style={{ color: '#fff' }}>Inventory</span>
                                 </Link>
                             </li>
-                            <li
-                                onMouseEnter={() => setHovered('damageProducts')}
-                                onMouseLeave={() => setHovered(null)}
-                                style={hovered === 'damageProducts' ? { ...menuItemStyle, ...hoverEffect } : menuItemStyle}
-                            >
-                                <Link to='/DamageProducts' className="side-menu__item" style={{ color: 'inherit' }}>
-                                    <i className="w-6 h-4 side-menu__icon bi bi-layout-wtf" style={{ color: '#fff' }}></i> {/* Set icon color to white */}
-                                    <span className="side-menu__label" style={{ color: '#fff' }}>Damaged Products</span>
-                                </Link>
-                            </li>
+                            
                             <li
                                 onMouseEnter={() => setHovered('customerPurchased')}
                                 onMouseLeave={() => setHovered(null)}
@@ -86,6 +77,16 @@ function Sidemenu() {
                                 <Link to='/customerpurchased' className="side-menu__item" style={{ color: 'inherit' }}>
                                     <i className="w-6 h-4 side-menu__icon bi bi-receipt" style={{ color: '#fff' }}></i> {/* Set icon color to white */}
                                     <span className="side-menu__label" style={{ color: '#fff' }}>Customer List</span>
+                                </Link>
+                            </li>
+                            <li
+                                onMouseEnter={() => setHovered('damageProducts')}
+                                onMouseLeave={() => setHovered(null)}
+                                style={hovered === 'damageProducts' ? { ...menuItemStyle, ...hoverEffect } : menuItemStyle}
+                            >
+                                <Link to='/DamageProducts' className="side-menu__item" style={{ color: 'inherit' }}>
+                                    <i className="w-6 h-4 side-menu__icon bi bi-layout-wtf" style={{ color: '#fff' }}></i> {/* Set icon color to white */}
+                                    <span className="side-menu__label" style={{ color: '#fff' }}>Damaged Products</span>
                                 </Link>
                             </li>
                             <li

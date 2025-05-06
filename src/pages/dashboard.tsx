@@ -1,80 +1,153 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import Header from "../layouts/header";
 import Sidemenu from "../layouts/sidemenu";
 import logo from "../assets/images/faces/14.jpg";
-import { FaShoppingCart, FaBoxes, FaMoneyBillWave, FaExclamationTriangle } from "react-icons/fa";
+import { FaShoppingCart, FaBoxes, FaMoneyBillWave, FaExclamationTriangle, FaUser } from "react-icons/fa";
 import Breadcrumb from "../components/breadcrumbs";
-import { Suspense } from 'react';
 import DamagedProductsWidgetWithErrorBoundary from '../components/DamagedProductsWidgetWithErrorBoundary';
 import API from "../api";
+
 function Dashboard() {
-    const [showAllProducts, setShowAllProducts] = useState(false);
     const [stats, setStats] = useState([
-        { title: 'Total Sales', value: '₱0', icon: <FaShoppingCart className="text-indigo-500" />, description: 'Today: ₱0 | This Month: ₱0', trend: 'N/A' },
-        { title: 'Total Revenue', value: '₱0', icon: <FaMoneyBillWave className="text-green-500" />, description: '₱0', trend: 'N/A' },
-        { title: 'Inventory', value: '0 Items', icon: <FaBoxes className="text-orange-500" />, description: '0 Categories', trend: 'N/A' },
-        { title: 'Critical Alerts', value: '0 Items', icon: <FaExclamationTriangle className="text-red-500" />, description: '0 Low stock | 0 Out of stock', trend: 'N/A' }
-    ]);
-   
-    const [topSellingProducts, setTopSellingProducts] = useState([
-        { name: 'N/A', sales: '₱0', quantity: '0', trend: 'N/A' },
-        { name: 'N/A', sales: '₱0', quantity: '0', trend: 'N/A' },
-        { name: 'N/A', sales: '₱0', quantity: '0', trend: 'N/A' },
-        { name: 'N/A', sales: '₱0', quantity: '0', trend: 'N/A' }
+        { 
+            title: 'Total Sales', 
+            value: `₱0`, 
+            icon: <FaShoppingCart className="text-indigo-500" />, 
+            description: 'Today: ₱0 | This Month: ₱0', 
+            trend: 'N/A' 
+        },
+        { 
+            title: 'Total Revenue', 
+            value: `₱0`, 
+            icon: <FaMoneyBillWave className="text-green-500" />, 
+            description: '₱0 Gross Revenue', 
+            trend: 'N/A' 
+        },
+        { 
+            title: 'Inventory', 
+            value: '0 Items', 
+            icon: <FaBoxes className="text-orange-500" />, 
+            description: '0 Categories', 
+            trend: 'N/A' 
+        },
+        { 
+            title: 'Critical Alerts', 
+            value: '0 Items', 
+            icon: <FaExclamationTriangle className="text-red-500" />, 
+            description: '0 Critical | 0 Low stock | 0 Out of stock', 
+            trend: 'N/A' 
+        }
     ]);
 
-    const [recentUpdates, setRecentUpdates] = useState([
-        { update: 'N/A', time: 'N/A', priority: 'medium', action: 'N/A' },
-        { update: 'N/A', time: 'N/A', priority: 'medium', action: 'N/A' },
-        { update: 'N/A', time: 'N/A', priority: 'medium', action: 'N/A' }
-    ]);
+    interface CustomerPurchase {
+        id: string;
+        name: string;
+        totalSpent: number;
+        lastPurchaseDate: string;
+        itemsPurchased: number;
+    }
+
+    const [recentPurchases, setRecentPurchases] = useState<CustomerPurchase[]>([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        API.get('/dashboard-data')
-            .then(response => {
-                const data = response.data;
-                console.log("Dashboard Data:", data); // helpful for debugging
-    
+        const fetchDashboardData = async () => {
+            try {
+                setLoading(true);
+                
+                // Fetch all needed data in parallel
+                const [dashboardResponse, customersResponse, inventoryResponse] = await Promise.all([
+                    API.get('/dashboard-data'),
+                    API.get('/customers'),
+                    API.get('/products')
+                ]);
+                
+                const dashboardData = dashboardResponse.data;
+                const customersData = customersResponse.data;
+                const inventoryData = inventoryResponse.data;
+
+                // Update stats first
                 setStats([
                     { 
                         title: 'Total Sales', 
-                        value: '₱0', 
-                        icon: <FaShoppingCart className="text-indigo-500" />, 
-                        description: 'Today: ₱0 | This Month: ₱0', 
-                        trend: 'N/A' 
+                        value: `₱${(dashboardData.total_sales ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
+                        icon: <FaShoppingCart className="text-blue-500" />, 
+                        description: `Today: ₱${(dashboardData.today_sales ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} | This Month: ₱${(dashboardData.month_sales ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                        trend: dashboardData.sales_trend ?? 'N/A'
                     },
                     { 
                         title: 'Total Revenue', 
-                        value: '₱0', 
+                        value: `₱${(dashboardData.gross_revenue ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
                         icon: <FaMoneyBillWave className="text-green-500" />, 
-                        description: '₱0', 
-                        trend: 'N/A' 
+                        description: `₱${(dashboardData.gross_revenue ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Gross Revenue`,
+                        trend: dashboardData.revenue_trend ?? 'N/A'
                     },
                     { 
                         title: 'Inventory', 
-                        value: `${data.total_items ?? 0} Items`, 
+                        value: `${dashboardData.total_items ?? 0} Items`, 
                         icon: <FaBoxes className="text-orange-500" />, 
-                        description: `${data.total_categories ?? 0} Categories`,
-                        trend: data.inventory_trend ?? 'N/A'
+                        description: `${dashboardData.total_categories ?? 0} Categories`,
+                        trend: dashboardData.inventory_trend ?? 'N/A'
                     },
                     { 
                         title: 'Critical Alerts', 
-                        value: `${data.critical_alerts ?? 0} Items`, 
+                        value: `${dashboardData.critical_alerts ?? 0} Items`, 
                         icon: <FaExclamationTriangle className="text-red-500" />, 
-                        description: `${data.critical_stock ?? 0} Critical | ${data.low_stock ?? 0} Low stock | ${data.out_of_stock ?? 0} Out of stock`,
-                        trend: data.alert_trend ?? 'N/A'
+                        description: `${dashboardData.critical_stock ?? 0} Critical | ${dashboardData.low_stock ?? 0} Low stock | ${dashboardData.out_of_stock ?? 0} Out of stock`,
+                        trend: dashboardData.alert_trend ?? 'N/A'
                     }
                 ]);
-    
-                setTopSellingProducts(data.top_selling_products ?? []);
-                setRecentUpdates(data.recent_updates ?? []);
-            })
-            .catch(error => {
-                console.error("Dashboard data fetch error:", error);
-            });
+
+                // Process customer purchases with inventory data
+                const processedPurchases = customersData.map((customer: any) => {
+                    // Calculate total spent from products
+                    const totalSpent = customer.products?.reduce((sum: number, product: any) => {
+                        // Find matching inventory item
+                        const inventoryItem = inventoryData.find(
+                            (item: any) => item.name === product.product_name || 
+                                  item.id === product.product_id
+                        );
+                        
+                        // Calculate price for this product
+                        const unitPrice = parseFloat(inventoryItem?.unit_price) || 0;
+                        const quantity = parseFloat(product.quantity) || 0;
+                        return sum + (unitPrice * quantity);
+                    }, 0) || 0;
+
+                    return {
+                        id: customer.id,
+                        name: customer.name,
+                        totalSpent: totalSpent,
+                        lastPurchaseDate: customer.purchase_date?.split('T')[0] || 'N/A',
+                        itemsPurchased: customer.products?.length || 0
+                    };
+                });
+
+                // Sort by most recent purchases and take top 5
+                const sortedPurchases = processedPurchases.sort((a: any, b: any) => {
+                    return new Date(b.lastPurchaseDate).getTime() - new Date(a.lastPurchaseDate).getTime();
+                }).slice(0, 5);
+
+                setRecentPurchases(sortedPurchases);
+
+            } catch (error) {
+                console.error("Error fetching dashboard data:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchDashboardData();
     }, []);
-    
-    
+
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-screen">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+            </div>
+        );
+    }
+
     return (
         <>
             <Header />
@@ -96,11 +169,6 @@ function Dashboard() {
                                         <p className="text-sm text-gray-600">
                                             {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                                         </p>
-                                        <div className="mt-3 bg-blue-100 rounded-lg p-2">
-                                            <p className="text-xs text-blue-800">
-                                                <span className="font-medium">Today's Target:</span> ₱0 sales
-                                            </p>
-                                        </div>
                                     </center>
                                 </div>
                             </div>
@@ -112,9 +180,11 @@ function Dashboard() {
                                 {stats.map((stat, index) => (
                                     <div key={index} className="box shadow-sm rounded-xl p-4 bg-white hover:shadow-md transition-shadow">
                                         <div className="flex items-start">
-                                            <div className="p-3 rounded-lg bg-opacity-20 mr-3" style={{ backgroundColor: `${stat.icon.props.className.includes('blue') ? 'rgba(59, 130, 246, 0.1)' : 
-                                                                                    stat.icon.props.className.includes('green') ? 'rgba(34, 197, 94, 0.1)' :
-                                                                                    stat.icon.props.className.includes('orange') ? 'rgba(249, 115, 22, 0.1)' : 'rgba(239, 68, 68, 0.1)'}`}}>
+                                            <div className="p-3 rounded-lg bg-opacity-20 mr-3" style={{ 
+                                                backgroundColor: `${stat.icon.props.className.includes('blue') ? 'rgba(59, 130, 246, 0.1)' : 
+                                                stat.icon.props.className.includes('green') ? 'rgba(34, 197, 94, 0.1)' :
+                                                stat.icon.props.className.includes('orange') ? 'rgba(249, 115, 22, 0.1)' : 'rgba(239, 68, 68, 0.1)'}`
+                                            }}>
                                                 {stat.icon}
                                             </div>
                                             <div>
@@ -130,62 +200,47 @@ function Dashboard() {
                         </div>
                     </div>
 
-                    {/* Top Selling Products Section */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-                        <div className="box bg-white rounded-xl shadow-sm p-5">
-                            <h2 className="text-lg font-semibold text-gray-800 mb-4">Top Selling Products</h2>
+                    {/* Main Content Section */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-2">
+                        {/* Recent Customer Purchases */}
+                        <div className="rounded-2xl p-6 shadow-sm border border-red-200 bg-white/70 backdrop-blur-md">
+                            <h2 className="text-lg font-semibold text-gray-800 mb-4">Recent Customer Purchases</h2>
                             <div className="divide-y divide-gray-200">
-                                {topSellingProducts.map((product, index) => (
-                                    <div key={index} className="flex justify-between py-2 items-center">
-                                        <div>
-                                            <p className="font-medium text-gray-700">{product.name}</p>
-                                            <p className="text-sm text-gray-500">Qty Sold: {product.quantity}</p>
+                                {recentPurchases.map((purchase) => (
+                                    <div key={purchase.id} className="flex justify-between py-3 items-center">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 rounded-full bg-blue-100 text-blue-600">
+                                                <FaUser />
+                                            </div>
+                                            <div>
+                                                <p className="font-medium text-gray-700">{purchase.name}</p>
+                                                <p className="text-sm text-gray-500">Purchased: {purchase.lastPurchaseDate}</p>
+                                            </div>
                                         </div>
                                         <div className="text-right">
-                                            <p className="text-sm font-semibold text-indigo-600">{product.sales}</p>
-                                            <p className="text-xs text-green-500">{product.trend}</p>
+                                            <p className="text-sm font-semibold text-green-600">
+                                                ₱{purchase.totalSpent.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </p>
+                                            <p className="text-xs text-gray-500">{purchase.itemsPurchased} items</p>
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         </div>
-                        <div className="box bg-white rounded-xl shadow-sm p-5">
-                            <h2 className="text-lg font-semibold text-gray-800 mb-4">Recent Updates</h2>
-                            <ul className="space-y-3">
-                                {recentUpdates.map((update, index) => (
-                                    <li key={index} className="flex justify-between items-center border-b pb-2">
-                                        <div>
-                                            <p className="text-sm font-medium text-gray-700">{update.update}</p>
-                                            <p className="text-xs text-gray-500">{update.time}</p>
-                                        </div>
-                                        <span className={`text-xs px-2 py-1 rounded-full ${
-                                            update.priority === 'high' ? 'bg-red-100 text-red-600' :
-                                            update.priority === 'low' ? 'bg-green-100 text-green-600' :
-                                            'bg-yellow-100 text-yellow-600'
-                                        }`}>
-                                            {update.priority}
-                                        </span>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    </div>
-
-                                
-                                {/* Damaged Products Widget */}
-                                <div className="lg:col-span-1">
-                                    <Suspense fallback={
-                                        <div className="bg-white shadow rounded-lg p-6 h-full animate-pulse border border-gray-200">
-                                            <div className="h-6 w-3/4 bg-gray-200 rounded mb-4"></div>
-                                            <div className="h-4 w-full bg-gray-200 rounded mb-2"></div>
-                                            <div className="h-4 w-5/6 bg-gray-200 rounded"></div>
-                                        </div>
-                                    }>
-                                        <DamagedProductsWidgetWithErrorBoundary />
-                                    </Suspense>
-                                </div>
+                        
+                        {/* Damaged Products Widget */}
+                        <Suspense fallback={
+                            <div className="bg-white shadow rounded-lg p-6 h-full animate-pulse border border-gray-200">
+                                <div className="h-6 w-3/4 bg-gray-200 rounded mb-4"></div>
+                                <div className="h-4 w-full bg-gray-200 rounded mb-2"></div>
+                                <div className="h-4 w-5/6 bg-gray-200 rounded"></div>
                             </div>
-                        </div>
+                        }>
+                            <DamagedProductsWidgetWithErrorBoundary />
+                        </Suspense>
+                    </div>
+                </div>
+            </div>
 
             <div className="footer bg-white shadow-lg rounded-2xl p-4 mt-10">
                 <p className="text-center text-gray-600">© 2025 Sales and Inventory for JARED Construction Supplies and Trading. All rights reserved.</p>
