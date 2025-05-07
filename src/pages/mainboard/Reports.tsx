@@ -27,24 +27,20 @@ const iconMap: Record<string, React.ReactNode> = {
 
 const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff7f50", "#a28dd0"];
 
+const PERIODS = [
+  { label: "Today", value: "today" },
+  { label: "Last Week", value: "last_week" },
+  { label: "Last Month", value: "last_month" },
+];
+
 const Reports: React.FC = () => {
   const [summaryData, setSummaryData] = useState<any[]>([]);
   const [salesSummary, setSalesSummary] = useState<any>(null);
   const [damageSummary, setDamageSummary] = useState<any>(null);
-  const [selectedPeriod, setSelectedPeriod] = useState<string>("Today");
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("today");
   const [loading, setLoading] = useState<boolean>(true);
   const [salesData, setSalesData] = useState<any[]>([]);
   const [categorySales, setCategorySales] = useState<any[]>([]);
-
-  const periods = [
-    "Today",
-    "Yesterday",
-    "This Week",
-    "This Month",
-    "Last Month",
-    "This Quarter",
-    "This Year",
-  ];
 
   useEffect(() => {
     const fetchData = async () => {
@@ -54,19 +50,11 @@ const Reports: React.FC = () => {
           params: { period: selectedPeriod },
         });
 
-        const transformedData = {
-          summary: response.data.summary || [],
-          salesSummary: response.data.salesSummary || null,
-          damageSummary: response.data.damageSummary || null,
-          salesAnalytics: response.data.salesAnalytics || [],
-          categorySales: response.data.categorySales || [],
-        };
-
-        setSummaryData(transformedData.summary);
-        setSalesSummary(transformedData.salesSummary);
-        setDamageSummary(transformedData.damageSummary);
-        setSalesData(transformedData.salesAnalytics);
-        setCategorySales(transformedData.categorySales);
+        setSummaryData(response.data.summary || []);
+        setSalesSummary(response.data.salesSummary || null);
+        setDamageSummary(response.data.damageSummary || null);
+        setSalesData(response.data.salesAnalytics || []);
+        setCategorySales(response.data.categorySales || []);
       } catch (error: any) {
         console.error("Error fetching report data:", error.response?.data || error.message);
       } finally {
@@ -89,22 +77,22 @@ const Reports: React.FC = () => {
             active="Reports"
           />
 
-          {/* Period and Filter Controls */}
+          {/* Period Controls */}
           <div className="mt-5 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
             <div>
               <h3 className="text-lg font-semibold text-gray-700 mb-2">Report Period</h3>
               <div className="flex flex-wrap gap-2">
-                {periods.map((period) => (
+                {PERIODS.map((period) => (
                   <button
-                    key={period}
-                    onClick={() => setSelectedPeriod(period)}
+                    key={period.value}
+                    onClick={() => setSelectedPeriod(period.value)}
                     className={`px-4 py-2 rounded-lg transition-colors ${
-                      selectedPeriod === period
+                      selectedPeriod === period.value
                         ? "bg-blue-600 text-white"
                         : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                     }`}
                   >
-                    {period}
+                    {period.label}
                   </button>
                 ))}
               </div>
@@ -185,11 +173,9 @@ const Reports: React.FC = () => {
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={salesData}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="month" />
+                  <XAxis dataKey="label" />
                   <YAxis />
-                  <Tooltip
-                    formatter={(value: number) => [`₱${value.toLocaleString()}`, "Sales"]}
-                  />
+                  <Tooltip formatter={(value: number) => [`₱${value.toLocaleString()}`, "Sales"]} />
                   <Legend />
                   <Line
                     type="monotone"

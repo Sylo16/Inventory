@@ -5,7 +5,7 @@ import "gridjs/dist/theme/mermaid.css";
 import Breadcrumb from "../../components/breadcrumbs";
 import Header from "../../layouts/header";
 import Sidemenu from "../../layouts/sidemenu";
-import ProfileImages from "../../assets/images/faces/10.jpg";
+import ProfileImages from "../../assets/images/faces/16.jpg";
 import API from "../../api";
 import Modal from "../../components/modal";
 import { FiUser } from "react-icons/fi";
@@ -152,7 +152,7 @@ const CustomerPurchased: React.FC = () => {
                 to="/customerpurchased/addcustomer"
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2"
               >
-                <i className="ri-add-line"></i> Add New Customer
+                <i className="ri-user-add-line"></i> Add Customer
               </Link>
             }
           />

@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { ArrowUpDown, Eye, EyeOff, ArrowUpCircle, Edit2 } from "lucide-react"; // Import new icons
+import { ArrowUpDown, Eye, EyeOff, ArrowUpCircle, Edit2 } from "lucide-react";
+import { FaTools } from 'react-icons/fa';
+
 import Breadcrumb from "../../components/breadcrumbs";
 import Header from "../../layouts/header";
 import Sidemenu from "../../layouts/sidemenu";
@@ -204,8 +206,9 @@ const Inventory: React.FC = () => {
         <div className="container-fluid">
           <Breadcrumb title="Inventory Status" links={[{ text: "Dashboard", link: "/dashboard" }]} active="Inventory" />
           <div className="flex justify-end mb-4">
-            <Link to="/inventory/addproduct" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
-              + Add New
+            <Link to="/inventory/addproduct" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center">
+              <FaTools  style={{ marginRight: '8px' }} size={18} />
+              Add Product
             </Link>
           </div>
           <div className="flex justify-between items-center mb-4">
