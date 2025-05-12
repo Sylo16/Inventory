@@ -17,7 +17,7 @@ import DamagedProducts from './pages/mainboard/DamageProducts';
 import CustomerPurchased from './pages/CustomerInfo/CustomerList';
 import CustomerAdd from './pages/CustomerInfo/CustomerAdd';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import AddNew from './pages/CustomerInfo/CustomerAddNewProduct';
+import AddNew from './pages/CustomerInfo/CustomerAddProduct';
 
 const queryClient = new QueryClient();
 

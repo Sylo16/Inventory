@@ -27,7 +27,7 @@ const DamagedProductsWidget: React.FC = () => {
 
   return (
     <motion.div 
-      className="rounded-2xl p-6 shadow-sm border border-red-200 bg-white/70 backdrop-blur-md"
+      className="rounded-xl p-6 shadow-sm border border-red-200 bg-white backdrop-blur-md"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}

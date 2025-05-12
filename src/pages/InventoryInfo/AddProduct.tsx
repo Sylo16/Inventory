@@ -5,6 +5,9 @@ import Header from "../../layouts/header";
 import Sidemenu from "../../layouts/sidemenu";
 import API from '../../api';
 import Select from 'react-select';
+import { toast, ToastContainer } from "react-toastify";
+import 'react-toastify/dist/ReactToastify.css';
+
 
 interface ProductForm {
   name: string;
@@ -83,6 +86,7 @@ const AddProduct: React.FC = () => {
 
       setSuccessMessage('Product added successfully!');
       setShowModal(true);
+      toast.success("Product added successfully!");
     } catch (err: any) {
       if (err.response?.data?.message) {
         setError(err.response.data.message);
@@ -105,7 +109,7 @@ const AddProduct: React.FC = () => {
   const categories = [
     'Lumber', 'Fencing Materials', 'Tools', 'Electrical',
     'Plumbing', 'Concrete', 'Roofing', 'Paint', 'Metal Products',
-    'Safety', 'Aggregates', 'Cementitious Products', 'Other'
+    'Safety', 'Aggregates', 'Cementitious Products', 'Hardware', 'Other'
   ].sort();
   
   console.log('Measurement Units:', measurementUnits);
@@ -209,6 +213,7 @@ const AddProduct: React.FC = () => {
           </div>
         </div>
       </div>
+      <ToastContainer />
     </div>
   );
 };

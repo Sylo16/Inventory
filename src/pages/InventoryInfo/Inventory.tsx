@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ArrowUpDown, Eye, EyeOff, ArrowUpCircle, Edit2 } from "lucide-react";
+import { PackagePlus, Settings2, Archive, ArchiveRestore, ArrowUpDown } from "lucide-react";
 import { FaTools } from 'react-icons/fa';
 
 import Breadcrumb from "../../components/breadcrumbs";
@@ -300,42 +300,45 @@ const Inventory: React.FC = () => {
                     <td className="py-3 px-4">{item.unitOfMeasurement}</td>
                     <td className="py-3 px-4">₱{item.unitPrice.toFixed(2)}</td>
                     <td className="py-3 px-4">{item.updatedAt}</td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center justify-center space-x-2">
-                        <input
-                          type="number"
-                          min="0"
-                          value={quantities[item.id] ?? ''}
-                          onChange={(e) => handleQuantityChange(item.id, e.target.value)}
-                          placeholder="Qty"
-                          className="w-16 p-1 border rounded text-center"
-                          disabled={item.hidden}
-                        />
-                        <button
-                          onClick={() => handleReceiveProduct(item.id)}
-                          className="bg-green-500 hover:bg-green-700 text-white py-2 px-4 rounded flex items-center justify-center space-x-2"
-                          disabled={item.hidden}
-                        >
-                          <ArrowUpCircle className="w-5 h-5 mr-2" /> Receive
-                        </button>
-                        <button
-                          onClick={() => handleUpdateProduct(item.id)}
-                          className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded flex items-center justify-center space-x-2"
-                          disabled={item.hidden}
-                        >
-                          <Edit2 className="w-5 h-5 mr-2" /> Update
-                        </button>
-                        <button
-                          onClick={() =>
-                            item.hidden ? handleUnhideProduct(item.id) : handleHideProduct(item.id)
-                          }
-                          className="bg-yellow-500 hover:bg-yellow-600 text-white p-2 rounded"
-                          title={item.hidden ? "Unhide Product" : "Hide Product"}
-                        >
-                          {item.hidden ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                        </button>
-                      </div>
-                    </td>
+                   <td className="py-3 px-4">
+  <div className="flex items-center justify-center gap-3">
+    <input
+      type="number"
+      min="0"
+      value={quantities[item.id] ?? ''}
+      onChange={(e) => handleQuantityChange(item.id, e.target.value)}
+      placeholder="Qty"
+      className="w-16 p-1 border rounded text-center"
+      disabled={item.hidden}
+    />
+    
+    <button
+      onClick={() => handleReceiveProduct(item.id)}
+      className="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded flex items-center gap-2 transition-colors"
+      disabled={item.hidden}
+    >
+      <PackagePlus className="w-5 h-5" />
+      <span>Receive</span>
+    </button>
+    
+    <button
+      onClick={() => handleUpdateProduct(item.id)}
+      className="p-2 text-gray-500 hover:text-indigo-600 transition-colors"
+      title="Configure product"
+      disabled={item.hidden}
+    >
+      <Settings2 className="w-5 h-5" />
+    </button>
+    
+    <button
+      onClick={() => item.hidden ? handleUnhideProduct(item.id) : handleHideProduct(item.id)}
+      className="p-2 text-gray-500 hover:text-amber-600 transition-colors"
+      title={item.hidden ? "Make visible" : "Archive product"}
+    >
+      {item.hidden ? <ArchiveRestore className="w-5 h-5" /> : <Archive className="w-5 h-5" />}
+    </button>
+  </div>
+</td>
                   </tr>
                 ))}
               </tbody>

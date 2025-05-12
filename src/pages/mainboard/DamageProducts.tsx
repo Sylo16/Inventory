@@ -20,27 +20,30 @@ interface DamagedProduct {
 interface DamagedItem {
   productId: string;
   productName: string;
-  quantity: number;
+  quantity: number | string;
   reason: string;
   unit_of_measurement: string;
+  maxQuantity?: number;
 }
 
 interface Customer {
   id: string;
   name: string;
   phone: string;
-  // All possible product property names from your API
   products?: {
     product_name: string;
     unit: string;
+    quantity?: number;
   }[];
   purchased_products?: {
     product_name: string;
     unit: string;
+    quantity?: number;
   }[];
   customer_products?: {
     product_name: string;
     unit: string;
+    quantity?: number;
   }[];
 }
 
@@ -48,6 +51,7 @@ interface ProductOption {
   value: string;
   label: string;
   unit: string;
+  maxQuantity?: number;
 }
 
 const DamagedProducts: React.FC = () => {
@@ -63,7 +67,7 @@ const DamagedProducts: React.FC = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<{value: string, label: string} | null>(null);
   const [damageDate, setDamageDate] = useState("");
   const [damagedItems, setDamagedItems] = useState<DamagedItem[]>([
-    { productId: "", productName: "", quantity: 1, reason: "", unit_of_measurement: "" }
+    { productId: "", productName: "", quantity: "", reason: "", unit_of_measurement: "" }
   ]);
   const [customerProductOptions, setCustomerProductOptions] = useState<ProductOption[]>([]);
 
@@ -86,7 +90,6 @@ const DamagedProducts: React.FC = () => {
     setIsLoadingCustomers(true);
     try {
       const response = await API.get("/customers");
-      console.log("API Response:", response.data); // Add this line
       setCustomers(response.data || []);
     } catch (error) {
       console.error("Error fetching customers:", error);
@@ -112,15 +115,15 @@ const DamagedProducts: React.FC = () => {
        []) as Array<{
         product_name: string;
         unit: string;
+        quantity?: number;
       }>;
-  
-    console.log("Customer products:", products);
   
     if (products.length > 0) {
       const options = products.map(product => ({
         value: product.product_name,
         label: product.product_name,
-        unit: product.unit
+        unit: product.unit,
+        maxQuantity: product.quantity
       }));
       setCustomerProductOptions(options);
     } else {
@@ -152,38 +155,49 @@ const DamagedProducts: React.FC = () => {
     }
   };
 
-  const validateForm = () => {
-    if (!selectedCustomer || !damageDate || damagedItems.length === 0) {
+ const validateForm = () => {
+  if (!selectedCustomer || !damageDate || damagedItems.length === 0) {
+    return false;
+  }
+  
+  for (const item of damagedItems) {
+    const quantity = typeof item.quantity === 'string' ? 
+      (item.quantity === '' ? 0 : parseInt(item.quantity)) : 
+      item.quantity;
+    
+    if (!item.productId || quantity <= 0 || !item.reason) {
       return false;
     }
-    
-    for (const item of damagedItems) {
-      if (!item.productId || item.quantity <= 0 || !item.reason) {
-        return false;
-      }
+    if (item.maxQuantity && quantity > item.maxQuantity) {
+      toast.error(`Quantity cannot exceed purchased amount (${item.maxQuantity}) for ${item.productName}`);
+      return false;
     }
-    
-    return true;
-  };
+  }
+  
+  return true;
+};
 
   const confirmDamage = async () => {
-    if (isLoading) return;
-    setIsLoading(true);
+  if (isLoading) return;
+  setIsLoading(true);
 
-    try {
-      // Convert each damaged item to a separate record
-      const promises = damagedItems.map(item => {
-        const productData = {
-          customer_name: selectedCustomer?.label || "",
-          product_name: item.productName,
-          quantity: item.quantity,
-          reason: item.reason,
-          date: damageDate,
-          unit_of_measurement: item.unit_of_measurement,
-        };
-        
-        return API.post("/damaged-products", productData);
-      });
+  try {
+    const promises = damagedItems.map(item => {
+      const quantity = typeof item.quantity === 'string' ? 
+        (item.quantity === '' ? 0 : parseInt(item.quantity)) : 
+        item.quantity;
+
+      const productData = {
+        customer_name: selectedCustomer?.label || "",
+        product_name: item.productName,
+        quantity: quantity,
+        reason: item.reason,
+        date: damageDate,
+        unit_of_measurement: item.unit_of_measurement,
+      };
+      
+      return API.post("/damaged-products", productData);
+    });
 
       const responses = await Promise.all(promises);
       const newRecords = responses.map(res => res.data.damagedProduct);
@@ -216,20 +230,38 @@ const DamagedProducts: React.FC = () => {
     }, 0);
   };
 
-  // Form handlers
   const handleProductChange = (index: number, option: any) => {
     const newItems = [...damagedItems];
     newItems[index].productId = option?.value || "";
     newItems[index].productName = option?.label || "";
     newItems[index].unit_of_measurement = option?.unit || "";
+    newItems[index].maxQuantity = option?.maxQuantity;
+    
+    if (option?.maxQuantity && newItems[index].quantity > option.maxQuantity) {
+      newItems[index].quantity = option.maxQuantity;
+    }
+    
     setDamagedItems(newItems);
   };
 
   const handleItemChange = (index: number, field: keyof DamagedItem, value: any) => {
-    const newItems = [...damagedItems];
+  const newItems = [...damagedItems];
+  
+  if (field === 'quantity') {
+    // Handle empty input (when user clears the field)
+    if (value === '' || isNaN(value)) {
+      newItems[index].quantity = '' as any; // We'll fix the type issue below
+    } else {
+      const numValue = parseInt(value, 10);
+      const maxQty = newItems[index].maxQuantity || Infinity;
+      newItems[index].quantity = Math.min(numValue, maxQty);
+    }
+  } else {
     newItems[index] = { ...newItems[index], [field]: value };
-    setDamagedItems(newItems);
-  };
+  }
+  
+  setDamagedItems(newItems);
+};
 
   const addNewRow = () => {
     setDamagedItems([...damagedItems, { 
@@ -251,7 +283,7 @@ const DamagedProducts: React.FC = () => {
   const filteredDamagedProducts = damagedProducts.filter((product) =>
     product.customer_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
-  // Add this function to your component
+
   const groupProductsByCustomer = (products: DamagedProduct[]) => {
     const grouped = products.reduce((acc, product) => {
       if (!acc[product.customer_name]) {
@@ -396,15 +428,22 @@ const DamagedProducts: React.FC = () => {
                           </div>
                           <div className="col-span-3">
                             <input
-                              type="number"
-                              value={item.quantity}
-                              onChange={(e) =>
-                                handleItemChange(index, "quantity", parseInt(e.target.value, 10))
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                              required
-                              min={1}
-                            />
+                                type="number"
+                                value={typeof item.quantity === 'number' ? item.quantity : ''}
+                                onChange={(e) =>
+                                  handleItemChange(index, "quantity", e.target.value)
+                                }
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                required
+                                min={1}
+                                max={item.maxQuantity}
+                                placeholder={item.maxQuantity ? `Max: ${item.maxQuantity}` : 'qty'}
+                              />
+                            {item.maxQuantity && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                Purchased: {item.maxQuantity} {item.unit_of_measurement}
+                              </p>
+                            )}
                           </div>
                           <div className="col-span-1 flex justify-end">
                             {damagedItems.length > 1 && (
@@ -421,10 +460,9 @@ const DamagedProducts: React.FC = () => {
                           </div>
                         </div>
                         
-                        {/* Moved Reason section here */}
                         <div className="mt-3">
-                          <input
-                            type="text"
+                          <textarea
+                            rows={2}
                             value={item.reason}
                             onChange={(e) => handleItemChange(index, "reason", e.target.value)}
                             placeholder="Damage reason"

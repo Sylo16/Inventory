@@ -16,7 +16,7 @@ function Header() {
 
     return (
         <>
-            <header className="app-header sticky shadow-md" id="header" style={{ backgroundColor: '#213448' }}>
+            <header className="app-header sticky shadow-md" id="header" style={{ backgroundColor: '#213555' }}>
                 <div className="main-header-container container-fluid flex justify-between items-center p-4">
                     {/* Logo */}
                     <div className="header-element">

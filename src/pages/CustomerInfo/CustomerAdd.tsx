@@ -21,7 +21,7 @@ type ProductOption = {
 type CategoryOption = { value: string; label: string };
 type UnitOption = { value: string; label: string };
 
-const AddCustomer: React.FC = () => {
+const CustomerAdd: React.FC = () => {
   const navigate = useNavigate();
   const [customer, setCustomer] = useState({ name: "", phone: "" });
   const [purchaseDate, setPurchaseDate] = useState("");
@@ -388,4 +388,4 @@ const AddCustomer: React.FC = () => {
   );
 };
 
-export default AddCustomer;
+export default CustomerAdd;

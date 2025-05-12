@@ -57,6 +57,7 @@ function Dashboard() {
 
   const [recentPurchases, setRecentPurchases] = useState<CustomerPurchase[]>([]);
   const [loading, setLoading] = useState(true);
+  
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -114,7 +115,7 @@ function Dashboard() {
             value: `${aggregatedTotalSales.toLocaleString("en-US")}`,
             icon: <FaShoppingCart className="text-indigo-500" />,
             description: "All-time total items sold",
-            trend: "This Month",
+            trend: "N/A",
           },
           {
             title: "Total Revenue",
@@ -124,7 +125,7 @@ function Dashboard() {
             })}`,
             icon: <FaMoneyBillWave className="text-green-500" />,
             description: "All-time gross revenue",
-            trend: "This Month",
+            trend: "N/A",
           },
         ]);
 
@@ -258,7 +259,7 @@ function Dashboard() {
           {/* Main Content Section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-2">
             {/* Recent Customer Purchases */}
-            <div className="rounded-2xl p-6 shadow-sm border border-red-200 bg-white/70 backdrop-blur-md">
+            <div className="rounded-xl p-6 shadow-sm border border-red-200 bg-white backdrop-blur-md">
               <h2 className="text-lg font-semibold text-gray-800 mb-4">
                 Recent Customer Purchases
               </h2>

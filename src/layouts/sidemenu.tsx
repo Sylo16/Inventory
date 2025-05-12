@@ -25,23 +25,23 @@ function Sidemenu() {
 
     return (
         <>
-            <aside className="app-sidebar" id="sidebar" style={{ backgroundColor: '#213448' }}>
-                <div className="main-sidebar-header" style={{ padding: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#213448' }}>
-                <h1 style={{
-                    fontFamily: 'Poppins, sans-serif',
-                    fontSize: '22px',
-                    fontWeight: 'bold',
-                    background: 'linear-gradient(to right, #4ade80, #22c55e)', // from green-400 to green-500
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    margin: 0,
-                    whiteSpace: 'nowrap',
-                }}>
-                    I N V E N T O R Y
-                </h1>
+            <aside className="app-sidebar" id="sidebar" style={{ backgroundColor: '#213555'  }}>
+    <div className="main-sidebar-header" style={{ padding: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#213555'  }}>
+        <h1 style={{
+            fontFamily: 'Poppins, sans-serif',
+            fontSize: '22px',
+            fontWeight: 'bold',
+            color: '#F93827',
+            margin: 0,
+            whiteSpace: 'nowrap',
+        }}>
+            I N V E N T O R Y
+        </h1>
 
-                    <img src={logo} className="transparent-shadow" style={{ maxHeight: '50px', marginLeft: '10px', objectFit: 'contain' }} />
-                </div>
+        <img src={logo} className="transparent-shadow" style={{ maxHeight: '50px', marginLeft: '10px', objectFit: 'contain' }} />
+    </div>
+
+
                 <div className="main-sidebar" id="sidebar-scroll">
                     <nav className="main-menu-container nav nav-pills flex-col sub-open">
                         <ul className="main-menu">

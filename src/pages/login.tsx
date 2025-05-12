@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import backgroundImage from '../assets/images/background/bg1.jpg';
+import backgroundImage from '../assets/images/background/background.jpg';
 import logo from '../assets/images/background/bg.jpg';
 import API from '../api';
 
@@ -45,7 +45,7 @@ const Login: React.FC = () => {
             className="flex items-center justify-center min-h-screen bg-cover bg-center"
             style={{ backgroundImage: `url(${backgroundImage})` }}
         >
-            <div className="bg-white bg-opacity-90 rounded-3xl shadow-2xl p-12 w-full max-w-lg transform transition-all hover:scale-105">
+            <div className="bg-white bg-opacity-90 rounded-xl shadow-2xl p-12 w-full max-w-lg transform transition-all hover:scale-105">
                 <div className="flex justify-center mb-6">
                     <img src={logo} alt="Logo" className="w-24 h-24 rounded-full border-4 border-white shadow-md" />
                 </div>
