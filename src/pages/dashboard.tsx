@@ -115,7 +115,7 @@ function Dashboard() {
             value: `${aggregatedTotalSales.toLocaleString("en-US")}`,
             icon: <FaShoppingCart className="text-indigo-500" />,
             description: "All-time total items sold",
-            trend: "N/A",
+            trend: "",
           },
           {
             title: "Total Revenue",
@@ -125,7 +125,7 @@ function Dashboard() {
             })}`,
             icon: <FaMoneyBillWave className="text-green-500" />,
             description: "All-time gross revenue",
-            trend: "N/A",
+            trend: "",
           },
         ]);
 

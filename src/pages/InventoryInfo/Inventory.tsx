@@ -301,44 +301,44 @@ const Inventory: React.FC = () => {
                     <td className="py-3 px-4">₱{item.unitPrice.toFixed(2)}</td>
                     <td className="py-3 px-4">{item.updatedAt}</td>
                    <td className="py-3 px-4">
-  <div className="flex items-center justify-center gap-3">
-    <input
-      type="number"
-      min="0"
-      value={quantities[item.id] ?? ''}
-      onChange={(e) => handleQuantityChange(item.id, e.target.value)}
-      placeholder="Qty"
-      className="w-16 p-1 border rounded text-center"
-      disabled={item.hidden}
-    />
-    
-    <button
-      onClick={() => handleReceiveProduct(item.id)}
-      className="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded flex items-center gap-2 transition-colors"
-      disabled={item.hidden}
-    >
-      <PackagePlus className="w-5 h-5" />
-      <span>Receive</span>
-    </button>
-    
-    <button
-      onClick={() => handleUpdateProduct(item.id)}
-      className="p-2 text-gray-500 hover:text-indigo-600 transition-colors"
-      title="Configure product"
-      disabled={item.hidden}
-    >
-      <Settings2 className="w-5 h-5" />
-    </button>
-    
-    <button
-      onClick={() => item.hidden ? handleUnhideProduct(item.id) : handleHideProduct(item.id)}
-      className="p-2 text-gray-500 hover:text-amber-600 transition-colors"
-      title={item.hidden ? "Make visible" : "Archive product"}
-    >
-      {item.hidden ? <ArchiveRestore className="w-5 h-5" /> : <Archive className="w-5 h-5" />}
-    </button>
-  </div>
-</td>
+                      <div className="flex items-center justify-center gap-3">
+                        <input
+                          type="number"
+                          min="0"
+                          value={quantities[item.id] ?? ''}
+                          onChange={(e) => handleQuantityChange(item.id, e.target.value)}
+                          placeholder="Qty"
+                          className="w-16 p-1 border rounded text-center"
+                          disabled={item.hidden}
+                        />
+                        
+                        <button
+                          onClick={() => handleReceiveProduct(item.id)}
+                          className="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded flex items-center gap-2 transition-colors"
+                          disabled={item.hidden}
+                        >
+                          <PackagePlus className="w-5 h-5" />
+                          <span>Receive</span>
+                        </button>
+                        
+                        <button
+                          onClick={() => handleUpdateProduct(item.id)}
+                          className="p-2 text-gray-500 hover:text-indigo-600 transition-colors"
+                          title="Configure product"
+                          disabled={item.hidden}
+                        >
+                          <Settings2 className="w-5 h-5" />
+                        </button>
+                        
+                        <button
+                          onClick={() => item.hidden ? handleUnhideProduct(item.id) : handleHideProduct(item.id)}
+                          className="p-2 text-gray-500 hover:text-amber-600 transition-colors"
+                          title={item.hidden ? "Make visible" : "Archive product"}
+                        >
+                          {item.hidden ? <ArchiveRestore className="w-5 h-5" /> : <Archive className="w-5 h-5" />}
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -367,70 +367,68 @@ const Inventory: React.FC = () => {
       </div>
 
       {isModalOpen && selectedProduct && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-    <div className="bg-white p-6 rounded-lg shadow-lg w-1/3">
-      <h3 className="text-xl font-bold mb-4">Edit Product</h3>
-      
-      <div className="mb-4">
-        <label className="block mb-1">Product Name</label>
-        <input
-          type="text"
-          value={selectedProduct.name}
-          onChange={(e) => handleModalChange("name", e.target.value)}
-          className="w-full p-2 border rounded"
-        />
-      </div>
-      
-      <div className="mb-4">
-        <label className="block mb-1">Category</label>
-        <input
-          type="text"
-          value={selectedProduct.category || ""}
-          onChange={(e) => handleModalChange("category", e.target.value)}
-          className="w-full p-2 border rounded"
-        />
-      </div>
-      
-      <div className="mb-4">
-        <label className="block mb-1">Unit of Measurement</label>
-        <input
-          type="text"
-          value={selectedProduct.unitOfMeasurement}
-          onChange={(e) => handleModalChange("unitOfMeasurement", e.target.value)}
-          className="w-full p-2 border rounded"
-        />
-      </div>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-1/3">
+            <h3 className="text-xl font-bold mb-4">Edit Product</h3>
+            
+            <div className="mb-4">
+              <label className="block mb-1">Product Name</label>
+              <input
+                type="text"
+                value={selectedProduct.name}
+                onChange={(e) => handleModalChange("name", e.target.value)}
+                className="w-full p-2 border rounded"
+              />
+            </div>
+            
+            <div className="mb-4">
+              <label className="block mb-1">Category</label>
+              <input
+                type="text"
+                value={selectedProduct.category || ""}
+                onChange={(e) => handleModalChange("category", e.target.value)}
+                className="w-full p-2 border rounded"
+              />
+            </div>
+            
+            <div className="mb-4">
+              <label className="block mb-1">Unit of Measurement</label>
+              <input
+                type="text"
+                value={selectedProduct.unitOfMeasurement}
+                onChange={(e) => handleModalChange("unitOfMeasurement", e.target.value)}
+                className="w-full p-2 border rounded"
+              />
+            </div>
 
-      <div className="mb-4">
-        <label className="block mb-1">Unit Price</label>
-        <input
-          type="number"
-          min="0"
-          value={selectedProduct.unitPrice}
-          onChange={(e) => handleModalChange("unitPrice", e.target.value)}
-          className="w-full p-2 border rounded"
-        />
-      </div>
+            <div className="mb-4">
+              <label className="block mb-1">Unit Price</label>
+              <input
+                type="number"
+                min="0"
+                value={selectedProduct.unitPrice}
+                onChange={(e) => handleModalChange("unitPrice", e.target.value)}
+                className="w-full p-2 border rounded"
+              />
+            </div>
 
-      <div className="flex justify-end space-x-3">
-        <button
-          onClick={handleCloseModal}
-          className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={handleSaveChanges}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
-          Save Changes
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-
-
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={handleCloseModal}
+                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveChanges}
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

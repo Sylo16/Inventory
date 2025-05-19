@@ -19,6 +19,7 @@ import CustomerAdd from './pages/CustomerInfo/CustomerAdd';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import AddNew from './pages/CustomerInfo/CustomerAddProduct';
 
+
 const queryClient = new QueryClient();
 
 

@@ -380,6 +380,7 @@ const Reports: React.FC = () => {
                     value={dateRange.start}
                     onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
                     className="border rounded p-2 mr-4"
+                    max={new Date().toISOString().split('T')[0]} // Optional: you can keep this unrestricted
                   />
                   <label htmlFor="endDate" className="mr-2 font-medium">To:</label>
                   <input
@@ -388,6 +389,7 @@ const Reports: React.FC = () => {
                     value={dateRange.end}
                     onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
                     className="border rounded p-2"
+                    max={new Date().toISOString().split('T')[0]} // This disables future dates
                   />
                 </div>
               )}
