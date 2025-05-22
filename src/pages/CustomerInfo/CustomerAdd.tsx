@@ -14,8 +14,8 @@ type ProductOption = {
   label: string;
   category: string;
   unit: string;
-  quantity: number; // Added quantity to track stock
-  isDisabled?: boolean; // Added to disable out of stock products
+  quantity: number; 
+  isDisabled?: boolean; 
 };
 
 type CategoryOption = { value: string; label: string };
@@ -144,51 +144,40 @@ const CustomerAdd: React.FC = () => {
   };
 
   const handleConfirm = async () => {
-    try {
-      const payload = {
-        name: customer.name,
-        phone: customer.phone,
-        purchase_date: purchaseDate,
-        products: products.map((p) => ({
-          product_name: p.productName,
-          category: p.category,
-          unit: p.unit,
-          quantity: Number(p.quantity),
-        })),
-      };
-  
-      // Create customer
-      const response = await API.post("/customers", payload);
-  
-      // After customer is created, update inventory
-      if (response.status === 201) {
-        // For each product purchased, update the inventory
-        for (const product of products) {
-          const productToUpdate = allProducts.find(
-            (prod) => prod.value === product.productName
-          );
-  
-          if (productToUpdate) {
-              await API.put(`/products/${encodeURIComponent(productToUpdate.value)}/deduct`, {
-                quantity: product.quantity,
-            });
-          }
-        }
-  
-        toast.success("Customer added successfully!");
-        setCustomer({ name: "", phone: "" });
-        setPurchaseDate("");
-        setProducts([{ productName: "", category: "", unit: "", quantity: "" }]);
-        setIsModalOpen(false);
-      }
-    } catch (error: any) {
-      console.error("Error saving customer:", error);
-      if (error.response) {
-        console.log("Error response:", error.response);
-      }
-      alert("There was a problem saving the customer.");
+  try {
+    const payload = {
+      name: customer.name,
+      phone: customer.phone,
+      purchase_date: purchaseDate,
+      products: products.map((p) => ({
+        product_name: p.productName,
+        category: p.category,
+        unit: p.unit,
+        quantity: Number(p.quantity),
+      })),
+    };
+
+    const response = await API.post("/customers", payload);
+
+    if (response.status === 201 || response.status === 200) {
+      toast.success("Customer added successfully!");
+
+      // Optionally reset the form
+      setCustomer({ name: "", phone: "" });
+      setPurchaseDate("");
+      setProducts([{ productName: "", category: "", unit: "", quantity: "" }]);
+
+      // Close modal
+      setIsModalOpen(false);
+
+      // Optional: Refresh product stock or navigate
+      // navigate('/somewhere');
     }
-  };
+  } catch (error) {
+    console.error("Error adding customer:", error);
+    toast.error("Failed to add customer.");
+  }
+};
 
   return (
     <>
@@ -247,7 +236,8 @@ const CustomerAdd: React.FC = () => {
               <h5 className="font-medium mb-4">Materials/Products Purchased</h5>
 
               {products.map((product, index) => (
-                <div className="flex flex-wrap gap-4 mb-4 items-center">
+                <div  key={`product-${index}`}
+                className="flex flex-wrap gap-4 mb-4 items-center">
                 {/* Category Select */}
                 <div className="flex flex-col flex-1 min-w-[150px]">
                   <label className="text-sm font-semibold block mb-1">Category</label>

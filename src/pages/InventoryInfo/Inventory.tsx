@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { PackagePlus, Settings2, Archive, ArchiveRestore, ArrowUpDown } from "lucide-react";
+import { PackagePlus, Settings2, Archive, ArchiveRestore, ArrowUpDown, Undo2 } from "lucide-react";
 import { FaTools } from 'react-icons/fa';
-
 import Breadcrumb from "../../components/breadcrumbs";
 import Header from "../../layouts/header";
 import Sidemenu from "../../layouts/sidemenu";
@@ -9,7 +8,6 @@ import { Link } from "react-router-dom";
 import API from "../../api";
 import { toast, ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
-
 
 interface Product {
   id: string;
@@ -27,6 +25,7 @@ const Inventory: React.FC = () => {
   const [sortBy, setSortBy] = useState<"name" | "quantity">("name");
   const [currentPage, setCurrentPage] = useState(1);
   const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
+  const [refundQuantities, setRefundQuantities] = useState<{ [key: string]: number }>({});
   const [inventoryItems, setInventoryItems] = useState<Product[]>([]);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [showHidden, setShowHidden] = useState(false);
@@ -65,6 +64,14 @@ const Inventory: React.FC = () => {
     }));
   };
 
+  const handleRefundQuantityChange = (productId: string, value: string) => {
+    const numValue = parseInt(value) || 0;
+    setRefundQuantities((prev) => ({
+      ...prev,
+      [productId]: numValue >= 0 ? numValue : 0,
+    }));
+  };
+
   const handleUpdateProduct = (productId: string) => {
     const productToUpdate = inventoryItems.find(item => item.id === productId);
     if (productToUpdate) {
@@ -84,6 +91,14 @@ const Inventory: React.FC = () => {
     try {
       const response = await API.put(`/products/${selectedProduct.id}`, selectedProduct);
       const updatedProduct = response.data.product;
+
+      // Send notification
+      await API.post('/notifications', {
+        type: 'product_configured',
+        message: `Updated configuration for ${updatedProduct.name}`,
+        product_id: selectedProduct.id,
+        product_name: updatedProduct.name
+      }); 
   
       const normalizedProduct: Product = {
         id: updatedProduct.id,
@@ -111,11 +126,18 @@ const Inventory: React.FC = () => {
       toast.error("Failed to update product.");
     }
   };
-  
 
   const handleHideProduct = async (productId: string) => {
     try {
       await API.post(`/products/${productId}/hide`);
+
+      await API.post('/notifications', {
+        type: 'product_archived',
+        message: `Archived product: ${productId}`,
+        product_id: productId,
+        product_name: productId
+      });
+
       await fetchProducts();
       toast.success("Product hidden successfully!");
     } catch (error) {
@@ -127,6 +149,16 @@ const Inventory: React.FC = () => {
   const handleUnhideProduct = async (productId: string) => {
     try {
       await API.post(`/products/${productId}/unhide`);
+
+        // Send a notification about the unhidden product
+      await API.post('/notifications', {
+        type: 'product_unhidden',
+        message: `Unhidden product: ${productId}`,
+        product_id: productId,
+        product_name: productId // replace this with actual product name if available
+      });
+
+
       await fetchProducts();
       toast.success("Product unhidden successfully!");
     } catch (error) {
@@ -148,6 +180,15 @@ const Inventory: React.FC = () => {
       });
   
       const updatedProduct = response.data.product;
+
+       // Send notification
+      await API.post('/notifications', {
+        type: 'product_received',
+        message: `Received ${quantityToAdd} units of ${updatedProduct.name}`,
+        product_id: productId,
+        product_name: updatedProduct.name,
+        quantity: quantityToAdd
+      });
   
       setInventoryItems((prevItems) =>
         prevItems.map((item) =>
@@ -165,6 +206,59 @@ const Inventory: React.FC = () => {
     } catch (error) {
       console.error("Error receiving product:", error);
       toast.error("Failed to update product quantity.");
+    }
+  };
+
+  const handleRefundProduct = async (productId: string) => {
+    try {
+      const quantityToRefund = refundQuantities[productId] || 0;
+      if (quantityToRefund <= 0) {
+        toast.error("Please enter a valid quantity to refund.");
+        return;
+      }
+
+      const product = inventoryItems.find(item => item.id === productId);
+      if (!product) {
+        toast.error("Product not found.");
+        return;
+      }
+
+      if (product.quantity < quantityToRefund) {
+        toast.error(`Cannot refund more than current stock (${product.quantity}).`);
+        return;
+      }
+
+      const response = await API.put(`/products/${productId}/deducted`, {
+        quantity: quantityToRefund,
+      });
+
+      const updatedProduct = response.data.product;
+
+       // Send notification
+      await API.post('/notifications', {
+        type: 'product_deducted',
+        message: `Deducted ${quantityToRefund} units of ${updatedProduct.name}`,
+        product_id: productId,
+        product_name: updatedProduct.name,
+        quantity: quantityToRefund
+      });
+
+      setInventoryItems((prevItems) =>
+        prevItems.map((item) =>
+          item.id === productId ? { ...item, ...updatedProduct } : item
+        )
+      );
+
+      // Reset refund quantity input for the product
+      setRefundQuantities((prevQuantities) => ({
+        ...prevQuantities,
+        [productId]: 0,
+      }));
+
+      toast.success("Product deduction processed successfully!");
+    } catch (error) {
+      console.error("Error refunding product:", error);
+      toast.error("Failed to process product refund.");
     }
   };
 
@@ -300,43 +394,70 @@ const Inventory: React.FC = () => {
                     <td className="py-3 px-4">{item.unitOfMeasurement}</td>
                     <td className="py-3 px-4">₱{item.unitPrice.toFixed(2)}</td>
                     <td className="py-3 px-4">{item.updatedAt}</td>
-                   <td className="py-3 px-4">
+                    <td className="py-3 px-4">
                       <div className="flex items-center justify-center gap-3">
-                        <input
-                          type="number"
-                          min="0"
-                          value={quantities[item.id] ?? ''}
-                          onChange={(e) => handleQuantityChange(item.id, e.target.value)}
-                          placeholder="Qty"
-                          className="w-16 p-1 border rounded text-center"
-                          disabled={item.hidden}
-                        />
-                        
-                        <button
-                          onClick={() => handleReceiveProduct(item.id)}
-                          className="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded flex items-center gap-2 transition-colors"
-                          disabled={item.hidden}
-                        >
-                          <PackagePlus className="w-5 h-5" />
-                          <span>Receive</span>
-                        </button>
-                        
-                        <button
-                          onClick={() => handleUpdateProduct(item.id)}
-                          className="p-2 text-gray-500 hover:text-indigo-600 transition-colors"
-                          title="Configure product"
-                          disabled={item.hidden}
-                        >
-                          <Settings2 className="w-5 h-5" />
-                        </button>
-                        
-                        <button
-                          onClick={() => item.hidden ? handleUnhideProduct(item.id) : handleHideProduct(item.id)}
-                          className="p-2 text-gray-500 hover:text-amber-600 transition-colors"
-                          title={item.hidden ? "Make visible" : "Archive product"}
-                        >
-                          {item.hidden ? <ArchiveRestore className="w-5 h-5" /> : <Archive className="w-5 h-5" />}
-                        </button>
+                        {/* Receive Section */}
+                        <div className="flex flex-col gap-1">
+                          <input
+                            type="number"
+                            min="0"
+                            value={quantities[item.id] ?? ''}
+                            onChange={(e) => handleQuantityChange(item.id, e.target.value)}
+                            placeholder="Qty"
+                            className="w-16 p-1 border rounded text-center"
+                            disabled={item.hidden}
+                          />
+                          <button
+                            onClick={() => handleReceiveProduct(item.id)}
+                            className="bg-green-500 hover:bg-green-600 text-white py-1 px-2 rounded flex items-center gap-1 transition-colors text-xs"
+                            disabled={item.hidden}
+                          >
+                            <PackagePlus className="w-3 h-3" />
+                            <span>Receive</span>
+                          </button>
+                        </div>
+
+                        {/* Refund Section */}
+                        <div className="flex flex-col gap-1">
+                          <input
+                            type="number"
+                            min="0"
+                            max={item.quantity}
+                            value={refundQuantities[item.id] ?? ''}
+                            onChange={(e) => handleRefundQuantityChange(item.id, e.target.value)}
+                            placeholder="Qty"
+                            className="w-16 p-1 border rounded text-center"
+                            disabled={item.hidden}
+                          />
+                          <button
+                            onClick={() => handleRefundProduct(item.id)}
+                            className="bg-orange-500 hover:bg-orange-600 text-white py-1 px-2 rounded flex items-center gap-1 transition-colors text-xs"
+                            disabled={item.hidden}
+                          >
+                            <Undo2 className="w-3 h-3" />
+                            <span>Deduct</span>
+                          </button>
+                        </div>
+
+                        {/* Other Actions */}
+                        <div className="flex flex-col gap-1">
+                          <button
+                            onClick={() => handleUpdateProduct(item.id)}
+                            className="p-1 text-gray-500 hover:text-indigo-600 transition-colors"
+                            title="Configure product"
+                            disabled={item.hidden}
+                          >
+                            <Settings2 className="w-4 h-4" />
+                          </button>
+                          
+                          <button
+                            onClick={() => item.hidden ? handleUnhideProduct(item.id) : handleHideProduct(item.id)}
+                            className="p-1 text-gray-500 hover:text-amber-600 transition-colors"
+                            title={item.hidden ? "Make visible" : "Archive product"}
+                          >
+                            {item.hidden ? <ArchiveRestore className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
+                          </button>
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -362,7 +483,6 @@ const Inventory: React.FC = () => {
               Next
             </button>
           </div>
-
         </div>
       </div>
 
@@ -371,36 +491,6 @@ const Inventory: React.FC = () => {
           <div className="bg-white p-6 rounded-lg shadow-lg w-1/3">
             <h3 className="text-xl font-bold mb-4">Edit Product</h3>
             
-            <div className="mb-4">
-              <label className="block mb-1">Product Name</label>
-              <input
-                type="text"
-                value={selectedProduct.name}
-                onChange={(e) => handleModalChange("name", e.target.value)}
-                className="w-full p-2 border rounded"
-              />
-            </div>
-            
-            <div className="mb-4">
-              <label className="block mb-1">Category</label>
-              <input
-                type="text"
-                value={selectedProduct.category || ""}
-                onChange={(e) => handleModalChange("category", e.target.value)}
-                className="w-full p-2 border rounded"
-              />
-            </div>
-            
-            <div className="mb-4">
-              <label className="block mb-1">Unit of Measurement</label>
-              <input
-                type="text"
-                value={selectedProduct.unitOfMeasurement}
-                onChange={(e) => handleModalChange("unitOfMeasurement", e.target.value)}
-                className="w-full p-2 border rounded"
-              />
-            </div>
-
             <div className="mb-4">
               <label className="block mb-1">Unit Price</label>
               <input
@@ -429,6 +519,7 @@ const Inventory: React.FC = () => {
           </div>
         </div>
       )}
+      
     </>
   );
 };

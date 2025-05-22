@@ -16,13 +16,7 @@ const Breadcrumb: React.FC<BreadcrumbProps> = ({ title = "Dashboard", links = []
                     <h1 className="page-title font medium text-lg mb-0">{title}</h1>
                     <nav>
                         <ol className="flex items-center whitespace-nowrap min-w-0 pb-2 mt-4">
-                            <li className="text-sm">
-                                <Link className="flex items-center text-primary hover:text-primary dark:text-primary" to="/">
-                                    <span className="bi bi-house-door"></span>
-                                    <span className="px-3">Home</span>
-                                    <span className="bi bi-chevron-right"></span>
-                                </Link>
-                            </li>
+                            
                             {links.map((link, index) => (
                                 <li key={index} className="text-sm">
                                     <Link className="flex items-center text-primary hover:text-primary dark:text-primary px-2" to={link.link}>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut } from 'lucide-react';
+import NotificationBell from '../components/NotificationBell';
 
 function Header() {
     const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -11,7 +12,7 @@ function Header() {
         setIsLoading(true);
         setTimeout(() => {
             navigate('/');
-        }, 1000); // simulate delay for logout
+        }, 1000);
     };
 
     return (
@@ -41,8 +42,10 @@ function Header() {
                         </div>
                     </div>
 
-                    {/* Logout Button */}
-                    <div className="relative">
+                    {/* Right side */}
+                    <div className="flex items-center gap-4">
+                        <NotificationBell />
+                        
                         <button
                             onClick={() => setDropdownOpen(true)}
                             className="flex items-center justify-center w-10 h-10 bg-gradient-to-tr from-green-600 to-green-500 text-white rounded-full shadow-lg hover:scale-105 transition-transform duration-200"
@@ -84,14 +87,8 @@ function Header() {
                                         fill="none"
                                         viewBox="0 0 24 24"
                                     >
-                                        <circle
-                                            className="opacity-25"
-                                            cx="12"
-                                            cy="12"
-                                            r="10"
-                                            stroke="currentColor"
-                                            strokeWidth="4"
-                                        />
+                                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+
                                         <path
                                             className="opacity-75"
                                             fill="currentColor"

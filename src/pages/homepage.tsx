@@ -29,7 +29,7 @@ function HomePage() {
 
                     {/* Navigation Links */}
                     <ul className="navbar-nav d-flex align-items-center text-danger fw-bold fs-5">
-                        {['Home', 'Features', 'Contact'].map((section, index) => (
+                        {['Features', 'Contact'].map((section, index) => (
                             <li className="nav-item mx-3" key={index}>
                                 <ScrollLink 
                                     className="nav-link"
@@ -42,15 +42,7 @@ function HomePage() {
                                 </ScrollLink>
                             </li>
                         ))}
-                    </ul>
-
-                    {/* Login Button */}
-                    <button 
-                        className="btn btn-warning text-dark fw-bold px-4 py-2 shadow-sm"
-                        onClick={() => navigate('/login')}
-                    >
-                        Admin
-                    </button>
+                    </ul>          
                 </div>
             </nav>
 
