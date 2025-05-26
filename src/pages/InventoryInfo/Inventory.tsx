@@ -31,6 +31,19 @@ const Inventory: React.FC = () => {
   const [showHidden, setShowHidden] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [loadingStates, setLoadingStates] = useState<{
+    receive: { [key: string]: boolean };
+    deduct: { [key: string]: boolean };
+    hide: { [key: string]: boolean };
+    edit: { [key: string]: boolean };
+    unhide: { [key: string]: boolean };
+  }>({
+    receive: {},
+    deduct: {},
+    hide: {},
+    edit: {},
+    unhide: {},
+  });
   const pageSize = 10;
 
   const fetchProducts = async () => {
@@ -87,8 +100,13 @@ const Inventory: React.FC = () => {
 
   const handleSaveChanges = async () => {
     if (!selectedProduct) return;
-  
+    
     try {
+      setLoadingStates(prev => ({
+        ...prev,
+        edit: { ...prev.edit, [selectedProduct.id]: true }
+      }));
+
       const response = await API.put(`/products/${selectedProduct.id}`, selectedProduct);
       const updatedProduct = response.data.product;
 
@@ -124,11 +142,21 @@ const Inventory: React.FC = () => {
     } catch (error) {
       console.error("Error updating product:", error);
       toast.error("Failed to update product.");
+    } finally {
+      setLoadingStates(prev => ({
+        ...prev,
+        edit: { ...prev.edit, [selectedProduct.id]: false }
+      }));
     }
   };
 
   const handleHideProduct = async (productId: string) => {
     try {
+      setLoadingStates(prev => ({
+        ...prev,
+        hide: { ...prev.hide, [productId]: true }
+      }));
+
       await API.post(`/products/${productId}/hide`);
 
       await API.post('/notifications', {
@@ -143,14 +171,24 @@ const Inventory: React.FC = () => {
     } catch (error) {
       console.error("Error hiding product:", error);
       toast.error("Failed to hide product.");
+    } finally {
+      setLoadingStates(prev => ({
+        ...prev,
+        hide: { ...prev.hide, [productId]: false }
+      }));
     }
   };
 
   const handleUnhideProduct = async (productId: string) => {
     try {
+      setLoadingStates(prev => ({
+        ...prev,
+        unhide: { ...prev.unhide, [productId]: true }
+      }));
+
       await API.post(`/products/${productId}/unhide`);
 
-        // Send a notification about the unhidden product
+      // Send a notification about the unhidden product
       await API.post('/notifications', {
         type: 'product_unhidden',
         message: `Unhidden product: ${productId}`,
@@ -158,17 +196,26 @@ const Inventory: React.FC = () => {
         product_name: productId // replace this with actual product name if available
       });
 
-
       await fetchProducts();
       toast.success("Product unhidden successfully!");
     } catch (error) {
       console.error("Error unhiding product:", error);
       toast.error("Failed to unhide product.");
+    } finally {
+      setLoadingStates(prev => ({
+        ...prev,
+        unhide: { ...prev.unhide, [productId]: false }
+      }));
     }
   };
 
   const handleReceiveProduct = async (productId: string) => {
     try {
+      setLoadingStates(prev => ({
+        ...prev,
+        receive: { ...prev.receive, [productId]: true }
+      }));
+
       const quantityToAdd = quantities[productId] || 0;
       if (quantityToAdd <= 0) {
         toast.error("Please enter a valid quantity to receive.");
@@ -181,7 +228,7 @@ const Inventory: React.FC = () => {
   
       const updatedProduct = response.data.product;
 
-       // Send notification
+      // Send notification
       await API.post('/notifications', {
         type: 'product_received',
         message: `Received ${quantityToAdd} units of ${updatedProduct.name}`,
@@ -206,11 +253,21 @@ const Inventory: React.FC = () => {
     } catch (error) {
       console.error("Error receiving product:", error);
       toast.error("Failed to update product quantity.");
+    } finally {
+      setLoadingStates(prev => ({
+        ...prev,
+        receive: { ...prev.receive, [productId]: false }
+      }));
     }
   };
 
   const handleRefundProduct = async (productId: string) => {
     try {
+      setLoadingStates(prev => ({
+        ...prev,
+        deduct: { ...prev.deduct, [productId]: true }
+      }));
+
       const quantityToRefund = refundQuantities[productId] || 0;
       if (quantityToRefund <= 0) {
         toast.error("Please enter a valid quantity to refund.");
@@ -234,7 +291,7 @@ const Inventory: React.FC = () => {
 
       const updatedProduct = response.data.product;
 
-       // Send notification
+      // Send notification
       await API.post('/notifications', {
         type: 'product_deducted',
         message: `Deducted ${quantityToRefund} units of ${updatedProduct.name}`,
@@ -259,6 +316,11 @@ const Inventory: React.FC = () => {
     } catch (error) {
       console.error("Error refunding product:", error);
       toast.error("Failed to process product refund.");
+    } finally {
+      setLoadingStates(prev => ({
+        ...prev,
+        deduct: { ...prev.deduct, [productId]: false }
+      }));
     }
   };
 
@@ -405,15 +467,21 @@ const Inventory: React.FC = () => {
                             onChange={(e) => handleQuantityChange(item.id, e.target.value)}
                             placeholder="Qty"
                             className="w-16 p-1 border rounded text-center"
-                            disabled={item.hidden}
+                            disabled={item.hidden || loadingStates.receive[item.id]}
                           />
                           <button
                             onClick={() => handleReceiveProduct(item.id)}
                             className="bg-green-500 hover:bg-green-600 text-white py-1 px-2 rounded flex items-center gap-1 transition-colors text-xs"
-                            disabled={item.hidden}
+                            disabled={item.hidden || loadingStates.receive[item.id]}
                           >
-                            <PackagePlus className="w-3 h-3" />
-                            <span>Receive</span>
+                            {loadingStates.receive[item.id] ? (
+                              <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
+                            ) : (
+                              <>
+                                <PackagePlus className="w-3 h-3" />
+                                <span>Receive</span>
+                              </>
+                            )}
                           </button>
                         </div>
 
@@ -427,15 +495,21 @@ const Inventory: React.FC = () => {
                             onChange={(e) => handleRefundQuantityChange(item.id, e.target.value)}
                             placeholder="Qty"
                             className="w-16 p-1 border rounded text-center"
-                            disabled={item.hidden}
+                            disabled={item.hidden || loadingStates.deduct[item.id]}
                           />
                           <button
                             onClick={() => handleRefundProduct(item.id)}
                             className="bg-orange-500 hover:bg-orange-600 text-white py-1 px-2 rounded flex items-center gap-1 transition-colors text-xs"
-                            disabled={item.hidden}
+                            disabled={item.hidden || loadingStates.deduct[item.id]}
                           >
-                            <Undo2 className="w-3 h-3" />
-                            <span>Deduct</span>
+                            {loadingStates.deduct[item.id] ? (
+                              <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
+                            ) : (
+                              <>
+                                <Undo2 className="w-3 h-3" />
+                                <span>Deduct</span>
+                              </>
+                            )}
                           </button>
                         </div>
 
@@ -445,17 +519,34 @@ const Inventory: React.FC = () => {
                             onClick={() => handleUpdateProduct(item.id)}
                             className="p-1 text-gray-500 hover:text-indigo-600 transition-colors"
                             title="Configure product"
-                            disabled={item.hidden}
+                            disabled={item.hidden || loadingStates.edit[item.id]}
                           >
-                            <Settings2 className="w-4 h-4" />
+                            {loadingStates.edit[item.id] ? (
+                              <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
+                            ) : (
+                              <Settings2 className="w-4 h-4" />
+                            )}
                           </button>
                           
                           <button
                             onClick={() => item.hidden ? handleUnhideProduct(item.id) : handleHideProduct(item.id)}
                             className="p-1 text-gray-500 hover:text-amber-600 transition-colors"
                             title={item.hidden ? "Make visible" : "Archive product"}
+                            disabled={item.hidden ? loadingStates.unhide[item.id] : loadingStates.hide[item.id]}
                           >
-                            {item.hidden ? <ArchiveRestore className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
+                            {item.hidden ? (
+                              loadingStates.unhide[item.id] ? (
+                                <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
+                              ) : (
+                                <ArchiveRestore className="w-4 h-4" />
+                              )
+                            ) : (
+                              loadingStates.hide[item.id] ? (
+                                <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
+                              ) : (
+                                <Archive className="w-4 h-4" />
+                              )
+                            )}
                           </button>
                         </div>
                       </div>
@@ -511,15 +602,18 @@ const Inventory: React.FC = () => {
               </button>
               <button
                 onClick={handleSaveChanges}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center justify-center"
+                disabled={loadingStates.edit[selectedProduct.id]}
               >
+                {loadingStates.edit[selectedProduct.id] ? (
+                  <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent mr-2"></div>
+                ) : null}
                 Save Changes
               </button>
             </div>
           </div>
         </div>
       )}
-      
     </>
   );
 };

@@ -259,7 +259,7 @@ const CustomerPurchased: React.FC = () => {
           {viewMode === "list" ? (
             <>
               <Breadcrumb
-                title="Manage Customers"
+                title="Customer Lists"
                 links={[{ text: "Dashboard", link: "/dashboard" }]}
                 active="Customer Lists"
                 buttons={

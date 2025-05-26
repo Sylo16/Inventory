@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Bell, BellDot, Package, PackagePlus, PackageMinus, Archive, Settings, AlertOctagon,  UserPlus, Eye } from 'lucide-react';
 import API from '../api';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -20,6 +21,7 @@ const NotificationBell = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   const formatNotificationDate = (dateString: string | undefined | null) => {
     if (!dateString) return 'Just now';
@@ -122,43 +124,45 @@ const NotificationBell = () => {
     try {
       await API.patch('/notifications/mark-all-read');
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-      toast.success('All notifications marked as read');
+      
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
       toast.error('Failed to mark all notifications as read');
     }
   };
 
-  const handleNotificationClick = (notification: Notification) => {
-    markAsRead(notification.id);
-    
-    // Add specific actions based on notification type
-    switch(notification.type) {
-      case 'product_received':
-      case 'product_deducted':
-      case 'product_configured':
-        window.location.href = `/inventory${notification.product_id ? `?product=${notification.product_id}` : ''}`;
-        break;
-      case 'product_archived':
-        window.location.href = '/inventory?showHidden=true';
-        break;
-      case 'product_unhidden':
-        window.location.href = '/inventory?showHidden=true';
-        break;
-      case 'product_added':
-        window.location.href = '/inventory';
-        break;
-      case 'inventory_update':
-        window.location.href = `/inventory${notification.product_id ? `?product=${notification.product_id}` : ''}`;
-        break;
-      case 'customer_added':
-        window.location.href = '/customers';
-        break;
-      case 'customer_product_added':
-        window.location.href = `/customers${notification.product_id ? `?product=${notification.product_id}` : ''}`;
-        break;
-      default:
-        break;
+   const handleNotificationClick = async (notification: Notification) => {
+    try {
+      await markAsRead(notification.id);
+
+      switch (notification.type) {
+        case 'product_received':
+        case 'product_deducted':
+        case 'product_configured':
+        case 'inventory_update':
+          navigate(`/inventory${notification.product_id ? `?product=${notification.product_id}` : ''}`);
+          break;
+        case 'product_archived':
+        case 'product_unhidden':
+          navigate('/inventory?showHidden=true');
+          break;
+        case 'product_added':
+          navigate('/inventory');
+          break;
+        case 'customer_added':
+          navigate('/customerpurchased');
+          break;
+        case 'customer_product_added':
+          navigate(`/customerpurchased${notification.product_id ? `?product=${notification.product_id}` : ''}`);
+          break;
+        case 'damaged_product_reported':
+          navigate(`/damageproducts${notification.product_id ? `?product=${notification.product_id}` : ''}`);
+          break;
+        default:
+          break;
+      }
+    } catch (error) {
+      toast.error('Could not mark as read');
     }
   };
 

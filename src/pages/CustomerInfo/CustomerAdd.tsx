@@ -29,10 +29,13 @@ const CustomerAdd: React.FC = () => {
   const [errors, setErrors] = useState({ name: "", phone: "", products: "", purchase_date: "" });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [allProducts, setAllProducts] = useState<ProductOption[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
+        setIsLoading(true);
         const response = await API.get("/products");
         const productData = response.data.map((prod: any) => ({
           value: prod.name,
@@ -40,12 +43,15 @@ const CustomerAdd: React.FC = () => {
           category: prod.category,
           unit: prod.unit_of_measurement,
           quantity: prod.quantity,
-          isDisabled: prod.quantity <= 0 // Disable if out of stock
+          isDisabled: prod.quantity <= 0
         }));
+
         setAllProducts(productData);
       } catch (error) {
         console.error("Error fetching products:", error);
-        alert("Failed to load product data.");
+        toast.error("Failed to load product data.");
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -109,7 +115,6 @@ const CustomerAdd: React.FC = () => {
       newErrors.products = "Quantity must be a positive number.";
       valid = false;
     } else {
-      // Additional validation for stock availability
       for (const product of products) {
         const selectedProduct = allProducts.find(p => p.value === product.productName);
         if (selectedProduct && Number(product.quantity) > selectedProduct.quantity) {
@@ -144,40 +149,99 @@ const CustomerAdd: React.FC = () => {
   };
 
   const handleConfirm = async () => {
-  try {
-    const payload = {
-      name: customer.name,
-      phone: customer.phone,
-      purchase_date: purchaseDate,
-      products: products.map((p) => ({
-        product_name: p.productName,
-        category: p.category,
-        unit: p.unit,
-        quantity: Number(p.quantity),
-      })),
-    };
+    try {
+      setIsSubmitting(true);
+      
+      // First, update the inventory quantities
+      await Promise.all(
+        products.map(async (product) => {
+          const response = await API.get("/products");
+          const inventoryItems = response.data.map((item: any) => ({
+            id: item.id,
+            name: item.name,
+            quantity: item.quantity,
+          }));
+          
+          const inventoryItem = inventoryItems.find(
+            (item: any) => item.name === product.productName
+          );
+          
+          if (!inventoryItem) {
+            throw new Error(`Product ${product.productName} not found in inventory`);
+          }
 
-    const response = await API.post("/customers", payload);
+          const quantityToDeduct = Number(product.quantity);
+          if (isNaN(quantityToDeduct) || quantityToDeduct <= 0) {
+            throw new Error(`Invalid quantity for ${product.productName}`);
+          }
 
-    if (response.status === 201 || response.status === 200) {
-      toast.success("Customer added successfully!");
+          if (inventoryItem.quantity < quantityToDeduct) {
+            throw new Error(`Insufficient stock for ${product.productName}`);
+          }
 
-      // Optionally reset the form
-      setCustomer({ name: "", phone: "" });
-      setPurchaseDate("");
-      setProducts([{ productName: "", category: "", unit: "", quantity: "" }]);
+          // Update inventory via API
+          await API.put(`/products/${inventoryItem.id}/deducted`, {
+            quantity: quantityToDeduct,
+          });
 
-      // Close modal
-      setIsModalOpen(false);
+          // Send notification for deduction
+          await API.post('/notifications', {
+            type: 'product_deducted',
+            message: `Deducted ${quantityToDeduct} units of ${inventoryItem.name} for customer purchase`,
+            product_id: inventoryItem.id,
+            product_name: inventoryItem.name,
+            quantity: quantityToDeduct
+          });
+        })
+      );
 
-      // Optional: Refresh product stock or navigate
-      // navigate('/somewhere');
-    }
-  } catch (error) {
-    console.error("Error adding customer:", error);
-    toast.error("Failed to add customer.");
+      // Then create the customer record
+      const payload = {
+        name: customer.name,
+        phone: customer.phone,
+        purchase_date: purchaseDate,
+        products: products.map((p) => ({
+          product_name: p.productName,
+          category: p.category,
+          unit: p.unit,
+          quantity: Number(p.quantity),
+        })),
+      };
+
+      const response = await API.post("/customers", payload);
+
+      if (response.status === 201 || response.status === 200) {
+        toast.success("Customer added successfully and inventory updated!");
+        
+        // Reset form
+        setCustomer({ name: "", phone: "" });
+        setPurchaseDate("");
+        setProducts([{ productName: "", category: "", unit: "", quantity: "" }]);
+        setIsModalOpen(false);
+        
+        // Refresh product data
+        const productsResponse = await API.get("/products");
+        const updatedProducts = productsResponse.data.map((prod: any) => ({
+          value: prod.name,
+          label: prod.name,
+          category: prod.category,
+          unit: prod.unit_of_measurement,
+          quantity: prod.quantity,
+          isDisabled: prod.quantity <= 0
+        }));
+        setAllProducts(updatedProducts);
+      }
+    } catch (error) {
+  console.error("Error adding customer:", error);
+
+  if (error instanceof Error) {
+    toast.error(error.message);
+  } else {
+    toast.error("Failed to add customer and update inventory");
   }
-};
+}
+
+  };
 
   return (
     <>
@@ -200,7 +264,7 @@ const CustomerAdd: React.FC = () => {
               >
                 ✕
               </button>
-
+              
               <h2 className="text-xl font-bold mb-6 text-center">Add New Customer</h2>
 
               <label className="text-sm font-semibold mb-2 block">Customer Name</label>
@@ -236,116 +300,109 @@ const CustomerAdd: React.FC = () => {
               <h5 className="font-medium mb-4">Materials/Products Purchased</h5>
 
               {products.map((product, index) => (
-                <div  key={`product-${index}`}
-                className="flex flex-wrap gap-4 mb-4 items-center">
-                {/* Category Select */}
-                <div className="flex flex-col flex-1 min-w-[150px]">
-                  <label className="text-sm font-semibold block mb-1">Category</label>
-                  <Select<CategoryOption>
-                    value={product.category ? { label: product.category, value: product.category } : null}
-                    onChange={(selected: CategoryOption | null) => {
-                      handleProductChange(index, "category", selected?.value || "");
-                      // Clear product and unit when category changes
-                      handleProductChange(index, "productName", "");
-                      handleProductChange(index, "unit", "");
-                    }}
-                    options={getCategoryOptions()}
-                    placeholder="Select Category"
-                    isClearable
-                    className="react-select-container"
-                    classNamePrefix="react-select"
-                    styles={{
-                      control: (base) => ({
-                        ...base,
-                        minHeight: '36px',
-                        fontSize: '14px'
-                      })
-                    }}
-                  />
+                <div key={`product-${index}`} className="flex flex-wrap gap-4 mb-4 items-center">
+                  <div className="flex flex-col flex-1 min-w-[150px]">
+                    <label className="text-sm font-semibold block mb-1">Category</label>
+                    <Select<CategoryOption>
+                      value={product.category ? { label: product.category, value: product.category } : null}
+                      onChange={(selected: CategoryOption | null) => {
+                        handleProductChange(index, "category", selected?.value || "");
+                        handleProductChange(index, "productName", "");
+                        handleProductChange(index, "unit", "");
+                      }}
+                      options={getCategoryOptions()}
+                      placeholder="Select Category"
+                      isClearable
+                      className="react-select-container"
+                      classNamePrefix="react-select"
+                      styles={{
+                        control: (base) => ({
+                          ...base,
+                          minHeight: '36px',
+                          fontSize: '14px'
+                        })
+                      }}
+                    />
+                  </div>
+                
+                  <div className="flex flex-col flex-1 min-w-[150px]">
+                    <label className="text-sm font-semibold block mb-1">Product Name</label>
+                    <Select<ProductOption>
+                      value={allProducts.find(p => p.value === product.productName) || null}
+                      onChange={(selected: ProductOption | null) => {
+                        handleProductChange(index, "productName", selected?.value || "");
+                        handleProductChange(index, "unit", "");
+                      }}
+                      options={getFilteredProducts(product.category, product.unit)}
+                      placeholder={product.category ? "Select Product" : "Select category first"}
+                      isClearable
+                      isDisabled={!product.category}
+                      isOptionDisabled={(option: ProductOption) => option.isDisabled || false}
+                      className="react-select-container"
+                      classNamePrefix="react-select"
+                      styles={{
+                        control: (base, { isDisabled }) => ({
+                          ...base,
+                          minHeight: '36px',
+                          fontSize: '14px',
+                          backgroundColor: isDisabled ? '#f3f4f6' : base.backgroundColor,
+                          cursor: isDisabled ? 'not-allowed' : 'pointer'
+                        }),
+                        option: (base, { isDisabled }) => ({
+                          ...base,
+                          color: isDisabled ? '#ccc' : base.color,
+                          cursor: isDisabled ? 'not-allowed' : 'pointer'
+                        })
+                      }}
+                    />
+                  </div>
+                
+                  <div className="flex flex-col flex-1 min-w-[120px]">
+                    <label className="text-sm font-semibold block mb-1">Unit</label>
+                    <Select<UnitOption>
+                      value={product.unit ? { label: product.unit, value: product.unit } : null}
+                      onChange={(selected: UnitOption | null) => handleProductChange(index, "unit", selected?.value || "")}
+                      options={getFilteredUnits(product.category, product.productName)}
+                      placeholder={product.productName ? "Select Unit" : "Select product first"}
+                      isClearable
+                      isDisabled={!product.productName}
+                      className="react-select-container"
+                      classNamePrefix="react-select"
+                      styles={{
+                        control: (base, { isDisabled }) => ({
+                          ...base,
+                          minHeight: '36px',
+                          fontSize: '14px',
+                          backgroundColor: isDisabled ? '#f3f4f6' : base.backgroundColor,
+                          cursor: isDisabled ? 'not-allowed' : 'pointer'
+                        })
+                      }}
+                    />
+                  </div>
+                
+                  <div className="flex flex-col min-w-[100px]">
+                    <label className="text-sm font-semibold block mb-1">Quantity</label>
+                    <input
+                      type="number"
+                      placeholder="Qty"
+                      value={product.quantity}
+                      onChange={(e) => handleProductChange(index, "quantity", e.target.value)}
+                      className="border border-gray-300 px-4 py-2 text-sm rounded w-full"
+                      min="1"
+                      disabled={!product.unit}
+                    />
+                  </div>
+                
+                  {products.length > 1 && (
+                    <button
+                      onClick={() => removeProductRow(index)}
+                      className="text-red-500 font-bold text-lg"
+                      title="Remove product"
+                    >
+                      ×
+                    </button>
+                  )}
                 </div>
-              
-                {/* Product Name Select - Disabled until category is selected */}
-                <div className="flex flex-col flex-1 min-w-[150px]">
-                  <label className="text-sm font-semibold block mb-1">Product Name</label>
-                  <Select<ProductOption>
-                    value={allProducts.find(p => p.value === product.productName) || null}
-                    onChange={(selected: ProductOption | null) => {
-                      handleProductChange(index, "productName", selected?.value || "");
-                      // Clear unit when product changes
-                      handleProductChange(index, "unit", "");
-                    }}
-                    options={getFilteredProducts(product.category, product.unit)}
-                    placeholder={product.category ? "Select Product" : "Select category first"}
-                    isClearable
-                    isDisabled={!product.category}
-                    isOptionDisabled={(option: ProductOption) => option.isDisabled || false}
-                    className="react-select-container"
-                    classNamePrefix="react-select"
-                    styles={{
-                      control: (base, { isDisabled }) => ({
-                        ...base,
-                        minHeight: '36px',
-                        fontSize: '14px',
-                        backgroundColor: isDisabled ? '#f3f4f6' : base.backgroundColor,
-                        cursor: isDisabled ? 'not-allowed' : 'pointer'
-                      }),
-                      option: (base, { isDisabled }) => ({
-                        ...base,
-                        color: isDisabled ? '#ccc' : base.color,
-                        cursor: isDisabled ? 'not-allowed' : 'pointer'
-                      })
-                    }}
-                  />
-                </div>
-              
-                {/* Unit Select - Disabled until product is selected */}
-                <div className="flex flex-col flex-1 min-w-[120px]">
-                  <label className="text-sm font-semibold block mb-1">Unit</label>
-                  <Select<UnitOption>
-                    value={product.unit ? { label: product.unit, value: product.unit } : null}
-                    onChange={(selected: UnitOption | null) => handleProductChange(index, "unit", selected?.value || "")}
-                    options={getFilteredUnits(product.category, product.productName)}
-                    placeholder={product.productName ? "Select Unit" : "Select product first"}
-                    isClearable
-                    isDisabled={!product.productName}
-                    className="react-select-container"
-                    classNamePrefix="react-select"
-                    styles={{
-                      control: (base, { isDisabled }) => ({
-                        ...base,
-                        minHeight: '36px',
-                        fontSize: '14px',
-                        backgroundColor: isDisabled ? '#f3f4f6' : base.backgroundColor,
-                        cursor: isDisabled ? 'not-allowed' : 'pointer'
-                      })
-                    }}
-                  />
-                </div>
-              
-                {/* Quantity Input - Disabled until unit is selected */}
-                <div className="flex flex-col min-w-[100px]">
-                  <label className="text-sm font-semibold block mb-1">Quantity</label>
-                  <input
-                    type="number"
-                    placeholder="Qty"
-                    value={product.quantity}
-                    onChange={(e) => handleProductChange(index, "quantity", e.target.value)}
-                    className="border border-gray-300 px-4 py-2 text-sm rounded w-full"
-                    min="1"
-                    disabled={!product.unit}
-                  />
-                </div>
-              
-                {products.length > 1 && (
-                  <button
-                    onClick={() => removeProductRow(index)}
-                    className="text-red-500 font-bold text-lg"
-                    title="Remove product"
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
               ))}
 
               <button onClick={addProductRow} className="text-green-600 font-semibold mt-2 mb-4">
@@ -356,9 +413,17 @@ const CustomerAdd: React.FC = () => {
 
               <button
                 onClick={handleAddCustomer}
-                className="bg-green-600 text-white rounded-full px-8 py-3 text-sm font-semibold w-full mt-4"
+                disabled={isSubmitting}
+                className="bg-green-600 text-white rounded-full px-8 py-3 text-sm font-semibold w-full mt-4 flex items-center justify-center gap-2"
               >
-                Add Customer
+                {isSubmitting ? (
+                  <>
+                    <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
+                    Processing...
+                  </>
+                ) : (
+                  "Add Customer"
+                )}
               </button>
             </div>
           </div>
@@ -367,10 +432,11 @@ const CustomerAdd: React.FC = () => {
 
       <Modal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => !isSubmitting && setIsModalOpen(false)}
         title="Confirm Customer"
-        message="Are you sure you want to add this customer?"
+        message="Are you sure you want to add this customer? This will deduct the products from inventory."
         onConfirm={handleConfirm}
+        isConfirming={isSubmitting}
       />
 
       <ToastContainer />
