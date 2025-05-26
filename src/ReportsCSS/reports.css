@@ -1,0 +1,279 @@
+/* Reports dashboard card */
+.bg-white.rounded-lg.shadow.p-6 {
+  background: #fff;
+  border-radius: 0.75rem; /* rounded-lg */
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+/* Header and buttons */
+.flex.flex-col.md\\:flex-row.justify-between.items-start.md\\:items-center.mb-6 {
+  align-items: center;
+  justify-content: space-between;
+}
+
+h2.text-2xl.font-bold.text-gray-800 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937; /* gray-800 */
+}
+
+button.bg-blue-600,
+button.bg-green-600 {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;;
+  cursor: pointer;
+  border: none;
+}
+
+button.bg-blue-600:hover {
+  background-color: #054eec; /* blue-700 */
+}
+
+button.bg-green-600:hover {
+  background-color: #03702d; /* gray-700 */
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Tabs */
+.flex.border-b {
+  border-bottom: 2px solid #e5e7eb; /* gray-200 */
+}
+
+button.py-2.px-4.font-medium {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 1rem;
+  padding: 0.5rem 1rem;
+  color: #4b5563; /* gray-600 */
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+button.py-2.px-4.font-medium:hover:not(.text-blue-600) {
+  color: #2563eb; /* blue-600 */
+}
+
+button.text-blue-600 {
+  color: #2563eb;
+  border-bottom-width: 2px;
+  border-bottom-color: #2563eb;
+  font-weight: 700;
+}
+
+/* Search input */
+input[type="text"] {
+  border: 1px solid #d1d5db; /* gray-300 */
+  border-radius: 0.375rem; /* rounded */
+  padding: 0.5rem 0.75rem 0.5rem 2.5rem;
+  width: 100%;
+  font-size: 1rem;
+  outline: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+input[type="text"]:focus {
+  border-color: #2563eb; /* blue-600 */
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3);
+}
+
+/* Select dropdowns */
+select {
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  outline: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3);
+}
+
+/* Cards on inventory and sales */
+.card-inventory-value,
+.card-in-stock,
+.card-low-stock,
+.card-critical-out-stock,
+.card-blue,
+.card-green,
+.card-purple {
+  background-color: #f3f4f6; /* gray-100 */
+  border-radius: 0.5rem;
+  padding: 1rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-inventory-value:hover,
+.card-in-stock:hover,
+.card-low-stock:hover,
+.card-critical-out-stock:hover,
+.card-blue:hover,
+.card-green:hover,
+.card-purple:hover {
+  transform: translateY(-4px);
+}
+
+/* Specific card colors */
+.card-in-stock {
+  background-color: #d1fae5; /* green-100 */
+  color: #065f46; /* green-800 */
+}
+
+.card-low-stock {
+  background-color: #fef3c7; /* yellow-100 */
+  color: #92400e; /* yellow-800 */
+}
+
+.card-critical-out-stock {
+  background-color: #fee2e2; /* red-100 */
+  color: #991b1b; /* red-800 */
+}
+
+.card-blue {
+  background-color: #bfdbfe; /* blue-200 */
+  color: #1e40af; /* blue-900 */
+}
+
+.card-green {
+  background-color: #bbf7d0; /* green-200 */
+  color: #166534; /* green-900 */
+}
+
+.card-purple {
+  background-color: #ddd6fe; /* violet-200 */
+  color: #5b21b6; /* violet-900 */
+}
+
+/* Tables */
+table.w-full.border {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.9rem;
+}
+
+table thead tr {
+  background-color: #f9fafb; /* lighter gray */
+}
+
+th.py-2.px-4.border,
+td.py-2.px-4.border {
+  border: 1px solid #e5e7eb; /* gray-200 */
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  vertical-align: middle;
+}
+
+/* Row hover effect */
+tbody tr:hover {
+  background-color: #f3f4f6;
+}
+
+/* Status badges */
+span.px-2.py-1.rounded.text-xs {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+
+/* Status colors handled inline via classes, but fallback */
+.bg-gray-500 { background-color: #6b7280 !important; color: #fff !important; }
+.bg-red-500 { background-color: #ef4444 !important; color: #fff !important; }
+.bg-yellow-200 { background-color: #fef3c7 !important; color: #000 !important; }
+.bg-green-500 { background-color: #22c55e !important; color: #fff !important; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .flex.flex-col.md\\:flex-row.justify-between.items-start.md\\:items-center.mb-6 {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .flex.space-x-2.mt-4.md\\:mt-0 {
+    margin-top: 1rem;
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+/* Print styling */
+@media print {
+  body {
+    background: white !important;
+  }
+  button, select, input, .flex.flex-col.md\\:flex-row.justify-between.items-start.md\\:items-center.mb-6 {
+    display: none !important;
+  }
+  #report-content {
+    border: none !important;
+    padding: 0 !important;
+  }
+  table {
+    page-break-inside: avoid;
+    font-size: 12pt;
+  }
+}
+
+/* cards-gradient.css */
+
+.card-red {
+  background-color: #ffe5e5; /* light red/pink */
+  border-radius: 0.5rem;
+  padding: 1rem;
+  color: #7f1d1d; /* dark red text */
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.card-orange {
+  background-color: #fff2e5; /* light orange/peach */
+  border-radius: 0.5rem;
+  padding: 1rem;
+  color: #9a4d00; /* dark orange text */
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.card-yellow {
+  background-color: #fffbe5; /* light yellow */
+  border-radius: 0.5rem;
+  padding: 1rem;
+  color: #7a6b00; /* dark yellow text */
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+
+.card-red:hover,
+.card-orange:hover,
+.card-yellow:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+}
+
+.card-red h4,
+.card-orange h4,
+.card-yellow h4 {
+  font-weight: 600; /* font-semibold */
+}
+
+.card-red p,
+.card-orange p,
+.card-yellow p {
+  font-size: 1.5rem; /* text-2xl */
+  font-weight: 700; /* font-bold */
+  margin: 0;
+}

@@ -287,8 +287,8 @@ function Dashboard() {
                       >
                         <Cell fill="#4CAF50" /> {/* In Stock - Green */}
                         <Cell fill="#FFBB28" /> {/* Low Stock - Yellow */}
-                        <Cell fill="#FF8042" /> {/* Critical Stock - Orange */}
-                        <Cell fill="#FF4444" /> {/* Out of Stock - Red */}
+                        <Cell fill="#FF4444" /> {/* Critical Stock - Red */}
+                        <Cell fill="#4B5563" /> {/* Dark Gray */}
                       </Pie>
                       <Tooltip />
                       <Legend verticalAlign="bottom" height={36} />

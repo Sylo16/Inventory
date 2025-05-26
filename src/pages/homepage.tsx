@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Link as ScrollLink } from 'react-scroll';
-import logo from '../assets/images/background/bg.jpg';
+import logo from '../assets/images/background/jared.jpg';
 import backgroundImage from '../assets/images/background/bg1.jpg';
 import inventoryImage from '../assets/images/background/card3.jpg';
 import salesImage from '../assets/images/background/card2.jpg';

@@ -45,13 +45,34 @@ function Header() {
                     {/* Right side */}
                     <div className="flex items-center gap-4">
                         <NotificationBell />
-                        
+
+                        {/* Styled Logout Button */}
                         <button
                             onClick={() => setDropdownOpen(true)}
-                            className="flex items-center justify-center w-10 h-10 bg-gradient-to-tr from-green-600 to-green-500 text-white rounded-full shadow-lg hover:scale-105 transition-transform duration-200"
+                            style={{
+                                position: 'relative',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: 40,
+                                height: 40,
+                                background: 'linear-gradient(to top right, #047857, #14b8a6)', // emerald to teal
+                                color: 'white',
+                                borderRadius: '9999px',
+                                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                                transition: 'transform 0.2s',
+                                cursor: 'pointer',
+                                outline: 'none',
+                            }}
+                            onMouseEnter={(e) =>
+                                (e.currentTarget.style.transform = 'scale(1.1)')
+                            }
+                            onMouseLeave={(e) =>
+                                (e.currentTarget.style.transform = 'scale(1)')
+                            }
                             aria-label="Open logout modal"
                         >
-                            <LogOut className="w-5 h-5" />
+                            <LogOut style={{ width: 20, height: 20 }} />
                         </button>
                     </div>
                 </div>
@@ -87,8 +108,13 @@ function Header() {
                                         fill="none"
                                         viewBox="0 0 24 24"
                                     >
-                                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-
+                                        <circle
+                                            cx="12"
+                                            cy="12"
+                                            r="10"
+                                            stroke="currentColor"
+                                            strokeWidth="4"
+                                        />
                                         <path
                                             className="opacity-75"
                                             fill="currentColor"
@@ -102,6 +128,47 @@ function Header() {
                     </div>
                 </div>
             )}
+            <style>{`
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(-5px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                @keyframes ping {
+                    0% {
+                        transform: scale(1);
+                        opacity: 1;
+                    }
+                    75%, 100% {
+                        transform: scale(2);
+                        opacity: 0;
+                    }
+                }
+                .animate-fadeIn {
+                    animation: fadeIn 0.3s ease-out;
+                }
+                .animate-ping-slow {
+                    animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+                }
+                .custom-scrollbar {
+                    max-height: 20rem;
+                    overflow-y: auto;
+                    overflow-x: hidden;
+                }
+                .custom-scrollbar::-webkit-scrollbar {
+                    width: 6px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background-color: #a0aec0;
+                    border-radius: 8px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-track {
+                    background-color: #edf2f7;
+                }
+                .custom-scrollbar {
+                    scrollbar-width: thin;
+                    scrollbar-color: #a0aec0 #edf2f7;
+                }
+            `}</style>
         </>
     );
 }

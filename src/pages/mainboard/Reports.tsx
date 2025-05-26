@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Download, Printer, FileText, BarChart2, Calendar, AlertTriangle } from "lucide-react";
+import { Download, Printer, FileText, BarChart2, Calendar, AlertTriangle, Search, UserPlus, PackagePlus, Clock } from "lucide-react";
 import Breadcrumb from "../../components/breadcrumbs";
 import Header from "../../layouts/header";
 import Sidemenu from "../../layouts/sidemenu";
@@ -8,6 +8,7 @@ import { toast, ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import '../../ReportsCSS/reports.css';
 
 interface ReportData {
   id: string;
@@ -17,6 +18,7 @@ interface ReportData {
   unitOfMeasurement: string;
   category?: string;
   updatedAt?: string;
+  createdAt?: string;
   hidden: boolean;
 }
 
@@ -24,10 +26,11 @@ interface SalesReport {
   customerName: string;
   purchaseDate: string;
   productName: string;
- unitOfMeasurement: string;
+  unitOfMeasurement: string;
   quantity: number;
   unitPrice: number;
   total: number;
+  createdAt?: string;
 }
 
 interface DamagedProduct {
@@ -37,20 +40,32 @@ interface DamagedProduct {
   reason: string;
   date: string;
   unit_of_measurement: string;
+  createdAt?: string;
+}
+
+interface Customer {
+  id: string;
+  name: string;
+  phone: string;
+  createdAt?: string;
 }
 
 const Reports: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<"inventory" | "sales" | "damaged">("inventory");
+  const [activeTab, setActiveTab] = useState<"inventory" | "sales" | "damaged" | "newProducts" | "newCustomers">("inventory");
   const [inventoryData, setInventoryData] = useState<ReportData[]>([]);
   const [salesData, setSalesData] = useState<SalesReport[]>([]);
   const [damagedData, setDamagedData] = useState<DamagedProduct[]>([]);
+  const [customersData, setCustomersData] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(false);
   const [dateRange, setDateRange] = useState({
     start: "",
     end: ""
   });
+  const [timeFilter, setTimeFilter] = useState<"all" | "today" | "week" | "month" | "year">("all");
   const [reportTitle, setReportTitle] = useState("Inventory Report");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [stockStatusFilter, setStockStatusFilter] = useState<"all" | "in" | "low" | "critical" | "out">("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const fetchInventoryData = async () => {
     setLoading(true);
@@ -63,7 +78,8 @@ const Reports: React.FC = () => {
         unitPrice: parseFloat(item.unit_price) || 0,
         unitOfMeasurement: item.unit_of_measurement,
         category: item.category,
-        updatedAt: item.updated_at ? new Date(item.updated_at).toLocaleDateString() : "",
+        updatedAt: item.updated_at,
+        createdAt: item.created_at,
         hidden: item.hidden,
       }));
       setInventoryData(items);
@@ -78,7 +94,6 @@ const Reports: React.FC = () => {
   const fetchSalesData = async () => {
     setLoading(true);
     try {
-      // Fetch customers and products
       const [customersResponse, productsResponse] = await Promise.all([
         API.get("/customers"),
         API.get("/products")
@@ -100,7 +115,8 @@ const Reports: React.FC = () => {
               quantity: quantity,
               unitOfMeasurement: product?.unit_of_measurement || "pcs",
               unitPrice: unitPrice,
-              total: quantity * unitPrice
+              total: quantity * unitPrice,
+              createdAt: customer.created_at
             });
           });
         }
@@ -121,6 +137,7 @@ const Reports: React.FC = () => {
       const updatedProducts = response.data.map((product: any) => ({
         ...product,
         unit_of_measurement: product.unit_of_measurement || "",
+        createdAt: product.created_at
       }));
       setDamagedData(updatedProducts);
     } catch (error) {
@@ -131,44 +148,129 @@ const Reports: React.FC = () => {
     }
   };
 
+  const fetchCustomersData = async () => {
+    setLoading(true);
+    try {
+      const response = await API.get("/customers");
+      const customers = response.data.map((customer: any) => ({
+        id: customer.id,
+        name: customer.name,
+        phone: customer.phone,
+        createdAt: customer.created_at
+      }));
+      setCustomersData(customers);
+    } catch (error) {
+      console.error("Error fetching customers:", error);
+      toast.error("Failed to load customers data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === "inventory") {
       fetchInventoryData();
     } else if (activeTab === "sales") {
       fetchSalesData();
-    } else {
+    } else if (activeTab === "damaged") {
       fetchDamagedData();
+    } else if (activeTab === "newCustomers") {
+      fetchCustomersData();
+    } else if (activeTab === "newProducts") {
+      fetchInventoryData();
     }
   }, [activeTab]);
 
-  const filteredInventoryData = inventoryData.filter(item => 
-    !item.hidden && 
-    (categoryFilter === "" || item.category === categoryFilter)
-  );
+  const getStockStatus = (quantity: number) => {
+    if (quantity === 0) return "out";
+    if (quantity < 10) return "critical";
+    if (quantity < 50) return "low";
+    return "in";
+  };
 
-  const filteredSalesData = salesData.filter(sale => {
+  const filterByTime = (items: any[]) => {
+    const now = new Date();
+    const today = new Date(now.setHours(0, 0, 0, 0));
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay());
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const startOfYear = new Date(today.getFullYear(), 0, 1);
+
+    return items.filter(item => {
+      if (!item.createdAt) return false;
+      const itemDate = new Date(item.createdAt);
+
+      switch (timeFilter) {
+        case "today":
+          return itemDate >= today;
+        case "week":
+          return itemDate >= startOfWeek;
+        case "month":
+          return itemDate >= startOfMonth;
+        case "year":
+          return itemDate >= startOfYear;
+        default:
+          return true;
+      }
+    });
+  };
+
+  const filteredInventoryData = filterByTime(inventoryData.filter(item => {
+    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                         item.category?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = categoryFilter === "" || item.category === categoryFilter;
+    const matchesStockStatus = 
+      stockStatusFilter === "all" || 
+      (stockStatusFilter === "in" && getStockStatus(item.quantity) === "in") ||
+      (stockStatusFilter === "low" && getStockStatus(item.quantity) === "low") ||
+      (stockStatusFilter === "critical" && getStockStatus(item.quantity) === "critical") ||
+      (stockStatusFilter === "out" && getStockStatus(item.quantity) === "out");
+    
+    return !item.hidden && matchesCategory && matchesStockStatus && matchesSearch;
+  }));
+
+  const filteredSalesData = filterByTime(salesData.filter(sale => {
     const saleDate = new Date(sale.purchaseDate);
     const startDate = dateRange.start ? new Date(dateRange.start) : null;
     const endDate = dateRange.end ? new Date(dateRange.end) : null;
     
-    return (
-      (categoryFilter === "" || sale.productName.includes(categoryFilter)) &&
+    const matchesSearch = 
+      sale.customerName.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      sale.productName.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = categoryFilter === "" || sale.productName.includes(categoryFilter);
+    const matchesDateRange = 
       (!startDate || saleDate >= startDate) &&
-      (!endDate || saleDate <= endDate)
-    );
-  });
+      (!endDate || saleDate <= endDate);
+    
+    return matchesCategory && matchesDateRange && matchesSearch;
+  }));
 
-  const filteredDamagedData = damagedData.filter(item => {
+  const filteredDamagedData = filterByTime(damagedData.filter(item => {
     const damageDate = new Date(item.date);
     const startDate = dateRange.start ? new Date(dateRange.start) : null;
     const endDate = dateRange.end ? new Date(dateRange.end) : null;
     
-    return (
-      (categoryFilter === "" || item.product_name.includes(categoryFilter)) &&
+    const matchesSearch = 
+      item.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      item.product_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.reason.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = categoryFilter === "" || item.product_name.includes(categoryFilter);
+    const matchesDateRange = 
       (!startDate || damageDate >= startDate) &&
-      (!endDate || damageDate <= endDate)
-    );
-  });
+      (!endDate || damageDate <= endDate);
+    
+    return matchesCategory && matchesDateRange && matchesSearch;
+  }));
+
+  const filteredNewCustomers = filterByTime(customersData.filter(customer => {
+    return customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           customer.phone.toLowerCase().includes(searchQuery.toLowerCase());
+  }));
+
+  const filteredNewProducts = filterByTime(inventoryData.filter(item => {
+    return item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           item.category?.toLowerCase().includes(searchQuery.toLowerCase());
+  }));
 
   const generatePDF = () => {
     const input = document.getElementById("report-content");
@@ -206,7 +308,7 @@ const Reports: React.FC = () => {
 
   const getCategories = () => {
     const categories = new Set<string>();
-    if (activeTab === "inventory") {
+    if (activeTab === "inventory" || activeTab === "newProducts") {
       inventoryData.forEach(item => {
         if (item.category) {
           categories.add(item.category);
@@ -215,15 +317,14 @@ const Reports: React.FC = () => {
     } else if (activeTab === "sales") {
       salesData.forEach(sale => {
         if (sale.productName) {
-          // Extract category from product name if needed
-          const category = sale.productName.split(" ")[0]; // Simple example
+          const category = sale.productName.split(" ")[0];
           if (category) categories.add(category);
         }
       });
-    } else {
+    } else if (activeTab === "damaged") {
       damagedData.forEach(item => {
         if (item.product_name) {
-          const category = item.product_name.split(" ")[0]; // Simple example
+          const category = item.product_name.split(" ")[0];
           if (category) categories.add(category);
         }
       });
@@ -237,10 +338,6 @@ const Reports: React.FC = () => {
 
   const calculateTotalSales = () => {
     return filteredSalesData.reduce((sum, sale) => sum + (Number(sale.total) || 0), 0);
-  };
-
-  const calculateTotalUnitPrices = () => {
-    return filteredSalesData.reduce((sum, sale) => sum + (Number(sale.unitPrice) || 0), 0);
   };
 
   const calculateTotalDamaged = () => {
@@ -283,6 +380,36 @@ const Reports: React.FC = () => {
     return aggregated;
   };
 
+  const getStockStatusCounts = () => {
+    const counts = {
+      in: 0,
+      low: 0,
+      critical: 0,
+      out: 0
+    };
+
+    inventoryData.forEach(item => {
+      if (item.hidden) return;
+      
+      const status = getStockStatus(item.quantity);
+      counts[status]++;
+    });
+
+    return counts;
+  };
+
+  const stockStatusCounts = getStockStatusCounts();
+
+  const getTimeFilterLabel = () => {
+    switch (timeFilter) {
+      case "today": return "Today";
+      case "week": return "This Week";
+      case "month": return "This Month";
+      case "year": return "This Year";
+      default: return "All Time";
+    }
+  };
+
   return (
     <>
       <Header />
@@ -320,9 +447,9 @@ const Reports: React.FC = () => {
             </div>
 
             <div className="mb-6">
-              <div className="flex border-b">
+              <div className="flex border-b overflow-x-auto">
                 <button
-                  className={`py-2 px-4 font-medium ${activeTab === "inventory" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-600"}`}
+                  className={`py-2 px-4 font-medium whitespace-nowrap ${activeTab === "inventory" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-600"}`}
                   onClick={() => {
                     setActiveTab("inventory");
                     setReportTitle("Inventory Report");
@@ -332,7 +459,7 @@ const Reports: React.FC = () => {
                   Inventory
                 </button>
                 <button
-                  className={`py-2 px-4 font-medium ${activeTab === "sales" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-600"}`}
+                  className={`py-2 px-4 font-medium whitespace-nowrap ${activeTab === "sales" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-600"}`}
                   onClick={() => {
                     setActiveTab("sales");
                     setReportTitle("Sales Report");
@@ -342,7 +469,7 @@ const Reports: React.FC = () => {
                   Sales
                 </button>
                 <button
-                  className={`py-2 px-4 font-medium ${activeTab === "damaged" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-600"}`}
+                  className={`py-2 px-4 font-medium whitespace-nowrap ${activeTab === "damaged" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-600"}`}
                   onClick={() => {
                     setActiveTab("damaged");
                     setReportTitle("Damaged Products Report");
@@ -351,24 +478,80 @@ const Reports: React.FC = () => {
                   <AlertTriangle className="inline mr-2" size={18} />
                   Damaged
                 </button>
+                <button
+                  className={`py-2 px-4 font-medium whitespace-nowrap ${activeTab === "newProducts" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-600"}`}
+                  onClick={() => {
+                    setActiveTab("newProducts");
+                    setReportTitle("New Products Report");
+                  }}
+                >
+                  <PackagePlus className="inline mr-2" size={18} />
+                  New Products
+                </button>
+                <button
+                  className={`py-2 px-4 font-medium whitespace-nowrap ${activeTab === "newCustomers" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-600"}`}
+                  onClick={() => {
+                    setActiveTab("newCustomers");
+                    setReportTitle("New Customers Report");
+                  }}
+                >
+                  <UserPlus className="inline mr-2" size={18} />
+                  New Customers
+                </button>
               </div>
             </div>
 
             <div className="mb-6 flex flex-wrap gap-4">
-              <div className="flex items-center">
-                <label htmlFor="category" className="mr-2 font-medium">Category:</label>
-                <select
-                  id="category"
-                  value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="border rounded p-2"
-                >
-                  <option value="">All Categories</option>
-                  {getCategories().map(category => (
-                    <option key={category} value={category}>{category}</option>
-                  ))}
-                </select>
+              <div className="relative flex-grow max-w-md">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="text-gray-400" size={18} />
+                </div>
+                <input
+                  type="text"
+                  placeholder={`Search ${activeTab === "inventory" ? "products" : 
+                              activeTab === "sales" ? "customers or products" : 
+                              activeTab === "damaged" ? "damaged products or customers" :
+                              activeTab === "newProducts" ? "new products" : "new customers"}...`}
+                  className="border rounded p-2 pl-10 w-full"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
               </div>
+
+              {(activeTab === "inventory" || activeTab === "newProducts") && (
+                <div className="flex items-center">
+                  <label htmlFor="category" className="mr-2 font-medium">Category:</label>
+                  <select
+                    id="category"
+                    value={categoryFilter}
+                    onChange={(e) => setCategoryFilter(e.target.value)}
+                    className="border rounded p-2"
+                  >
+                    <option value="">All Categories</option>
+                    {getCategories().map(category => (
+                      <option key={category} value={category}>{category}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {activeTab === "inventory" && (
+                <div className="flex items-center">
+                  <label htmlFor="stockStatus" className="mr-2 font-medium">Stock Status:</label>
+                  <select
+                    id="stockStatus"
+                    value={stockStatusFilter}
+                    onChange={(e) => setStockStatusFilter(e.target.value as any)}
+                    className="border rounded p-2"
+                  >
+                    <option value="all">All Stock</option>
+                    <option value="in">In Stock ({stockStatusCounts.in})</option>
+                    <option value="low">Low Stock ({stockStatusCounts.low})</option>
+                    <option value="critical">Critical Stock ({stockStatusCounts.critical})</option>
+                    <option value="out">Out of Stock ({stockStatusCounts.out})</option>
+                  </select>
+                </div>
+              )}
 
               {(activeTab === "sales" || activeTab === "damaged") && (
                 <div className="flex items-center">
@@ -380,7 +563,7 @@ const Reports: React.FC = () => {
                     value={dateRange.start}
                     onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
                     className="border rounded p-2 mr-4"
-                    max={new Date().toISOString().split('T')[0]} // Optional: you can keep this unrestricted
+                    max={new Date().toISOString().split('T')[0]}
                   />
                   <label htmlFor="endDate" className="mr-2 font-medium">To:</label>
                   <input
@@ -389,8 +572,27 @@ const Reports: React.FC = () => {
                     value={dateRange.end}
                     onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
                     className="border rounded p-2"
-                    max={new Date().toISOString().split('T')[0]} // This disables future dates
+                    max={new Date().toISOString().split('T')[0]}
                   />
+                </div>
+              )}
+
+              {(activeTab === "newProducts" || activeTab === "newCustomers") && (
+                <div className="flex items-center">
+                  <Clock className="mr-2" size={18} />
+                  <label htmlFor="timeFilter" className="mr-2 font-medium">Time:</label>
+                  <select
+                    id="timeFilter"
+                    value={timeFilter}
+                    onChange={(e) => setTimeFilter(e.target.value as any)}
+                    className="border rounded p-2"
+                  >
+                    <option value="all">All Time</option>
+                    <option value="today">Today</option>
+                    <option value="week">This Week</option>
+                    <option value="month">This Month</option>
+                    <option value="year">This Year</option>
+                  </select>
                 </div>
               )}
             </div>
@@ -401,15 +603,41 @@ const Reports: React.FC = () => {
                 <p className="text-gray-600">
                   {(activeTab === "sales" || activeTab === "damaged") && dateRange.start && dateRange.end 
                     ? `Date Range: ${new Date(dateRange.start).toLocaleDateString()} - ${new Date(dateRange.end).toLocaleDateString()}`
-                    : `Generated on: ${new Date().toLocaleDateString()}`}
+                    : (activeTab === "newProducts" || activeTab === "newCustomers") 
+                      ? `Showing: ${getTimeFilterLabel()}`
+                      : `Generated on: ${new Date().toLocaleDateString()}`}
                 </p>
+                {activeTab === "inventory" && stockStatusFilter !== "all" && (
+                  <p className="text-gray-600">
+                    Showing: {stockStatusFilter === "in" ? "In Stock" : 
+                             stockStatusFilter === "low" ? "Low Stock" : 
+                             stockStatusFilter === "critical" ? "Critical Stock" : "Out of Stock"} items
+                  </p>
+                )}
               </div>
 
               {activeTab === "inventory" ? (
                 <>
-                  <div className="mb-4">
-                    <p className="font-semibold">Total Inventory Value: ₱{calculateInventoryValue().toFixed(2)}</p>
-                    <p className="font-semibold">Total Items: {filteredInventoryData.length}</p>
+                  <div className="mb-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="card-inventory-value text-center">
+                      <h4>Total Inventory Value</h4>
+                      <p className="text-2xl font-bold">₱{calculateInventoryValue().toFixed(2)}</p>
+                    </div>
+
+                    <div className="card-in-stock text-center">
+                      <h4>In Stock Items</h4>
+                      <p className="text-2xl font-bold">{stockStatusCounts.in}</p>
+                    </div>
+
+                    <div className="card-low-stock text-center">
+                      <h4>Low Stock Items</h4>
+                      <p className="text-2xl font-bold">{stockStatusCounts.low}</p>
+                    </div>
+
+                    <div className="card-critical-out-stock text-center">
+                      <h4>Critical/Out of Stock</h4>
+                      <p className="text-2xl font-bold">{stockStatusCounts.critical + stockStatusCounts.out}</p>
+                    </div>
                   </div>
                   
                   <div className="overflow-x-auto">
@@ -459,7 +687,7 @@ const Reports: React.FC = () => {
                         ) : (
                           <tr>
                             <td colSpan={7} className="py-4 text-center text-gray-500">
-                              No inventory data found
+                              No inventory data found matching your criteria
                             </td>
                           </tr>
                         )}
@@ -469,16 +697,21 @@ const Reports: React.FC = () => {
                 </>
               ) : activeTab === "sales" ? (
                 <>
-                  <div className="mb-4">
-                    <p className="font-semibold">
-                      Total of All Unit Prices: ₱{calculateTotalUnitPrices().toFixed(2)}
-                    </p>
-                    <p className="font-semibold">
-                      Total Sales: ₱{calculateTotalSales().toFixed(2)}
-                    </p>
-                    <p className="font-semibold">
-                      Total Transactions: {filteredSalesData.length}
-                    </p>
+                  <div className="mb-4 grid grid-cols-3 md:grid-cols-3 gap-4">
+                    <div className="card-blue text-center">
+                      <h4 className="font-semibold">Total Sales</h4>
+                      <p className="text-2xl font-bold">₱{calculateTotalSales().toFixed(2)}</p>
+                    </div>
+                    <div className="card-green text-center">
+                      <h4 className="font-semibold">Total Transactions</h4>
+                      <p className="text-2xl font-bold">{filteredSalesData.length}</p>
+                    </div>
+                    <div className="card-purple text-center">
+                      <h4 className="font-semibold">Unique Customers</h4>
+                      <p className="text-2xl font-bold">
+                        {new Set(filteredSalesData.map(sale => sale.customerName)).size}
+                      </p>
+                    </div>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full border">
@@ -508,18 +741,28 @@ const Reports: React.FC = () => {
                           ))
                         ) : (
                           <tr>
-                            <td colSpan={7} className="text-center py-4">No sales data found.</td>
+                            <td colSpan={7} className="text-center py-4">No sales data found matching your criteria.</td>
                           </tr>
                         )}
                       </tbody>
                     </table>
                   </div>
                 </>
-              ) : (
+              ) : activeTab === "damaged" ? (
                 <>
-                  <div className="mb-4">
-                    <p className="font-semibold">Total Damaged Items: {calculateTotalDamaged()}</p>
-                    <p className="font-semibold">Total Records: {filteredDamagedData.length}</p>
+                  <div className="mb-4 grid grid-cols-3 md:grid-cols-3 gap-4">
+                    <div className="card-red text-center">
+                      <h4>Total Damaged Items</h4>
+                      <p>{calculateTotalDamaged()}</p>
+                    </div>
+                    <div className="card-orange text-center">
+                      <h4>Total Records</h4>
+                      <p>{filteredDamagedData.length}</p>
+                    </div>
+                    <div className="card-yellow text-center">
+                      <h4>Affected Customers</h4>
+                      <p>{new Set(filteredDamagedData.map(item => item.customer_name)).size}</p>
+                    </div>
                   </div>
 
                   <div className="mb-6">
@@ -591,6 +834,117 @@ const Reports: React.FC = () => {
                         </div>
                       ))}
                     </div>
+                  </div>
+                </>
+              ) : activeTab === "newProducts" ? (
+                <>
+                  <div className="mb-4 grid grid-cols-3 md:grid-cols-3 gap-4">
+                    <div className="card-blue text-center">
+                      <h4 className="font-semibold">Total New Products</h4>
+                      <p className="text-2xl font-bold">{filteredNewProducts.length}</p>
+                    </div>
+                    <div className="card-green text-center">
+                      <h4 className="font-semibold">Categories</h4>
+                      <p className="text-2xl font-bold">{new Set(filteredNewProducts.map(p => p.category)).size}</p>
+                    </div>
+                    <div className="card-purple text-center">
+                      <h4 className="font-semibold">Inventory Value</h4>
+                      <p className="text-2xl font-bold">
+                        ₱{filteredNewProducts.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0).toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="overflow-x-auto">
+                    <table className="w-full border">
+                      <thead className="bg-gray-100">
+                        <tr>
+                          <th className="py-2 px-4 border">Product Name</th>
+                          <th className="py-2 px-4 border">Category</th>
+                          <th className="py-2 px-4 border">Quantity</th>
+                          <th className="py-2 px-4 border">Unit</th>
+                          <th className="py-2 px-4 border">Unit Price</th>
+                          <th className="py-2 px-4 border">Total Value</th>
+                          <th className="py-2 px-4 border">Date Added</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredNewProducts.length > 0 ? (
+                          filteredNewProducts.map((item) => (
+                            <tr key={item.id} className="border">
+                              <td className="py-2 px-4 border">{item.name}</td>
+                              <td className="py-2 px-4 border">{item.category || "N/A"}</td>
+                              <td className="py-2 px-4 border">{item.quantity}</td>
+                              <td className="py-2 px-4 border">{item.unitOfMeasurement}</td>
+                              <td className="py-2 px-4 border">₱{item.unitPrice.toFixed(2)}</td>
+                              <td className="py-2 px-4 border">₱{(item.quantity * item.unitPrice).toFixed(2)}</td>
+                              <td className="py-2 px-4 border">
+                                {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "N/A"}
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={7} className="py-4 text-center text-gray-500">
+                              No new products found matching your criteria
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="mb-4 grid grid-cols-3 md:grid-cols-3 gap-4">
+                    <div className="card-blue text-center">
+                      <h4 className="font-semibold">Total New Customers</h4>
+                      <p className="text-2xl font-bold">{filteredNewCustomers.length}</p>
+                    </div>
+                    <div className="card-green text-center">
+                      <h4 className="font-semibold">This {timeFilter === "today" ? "Day" : 
+                                                    timeFilter === "week" ? "Week" : 
+                                                    timeFilter === "month" ? "Month" : 
+                                                    timeFilter === "year" ? "Year" : "Period"}</h4>
+                      <p className="text-2xl font-bold">{filteredNewCustomers.length}</p>
+                    </div>
+                    <div className="card-purple text-center">
+                      <h4 className="font-semibold">First Letter</h4>
+                      <p className="text-2xl font-bold">
+                        {new Set(filteredNewCustomers.map(c => c.name.charAt(0).toUpperCase())).size}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="overflow-x-auto">
+                    <table className="w-full border">
+                      <thead className="bg-gray-100">
+                        <tr>
+                          <th className="py-2 px-4 border">Customer Name</th>
+                          <th className="py-2 px-4 border">Contact</th>
+                          <th className="py-2 px-4 border">Date Added</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredNewCustomers.length > 0 ? (
+                          filteredNewCustomers.map((customer) => (
+                            <tr key={customer.id} className="border">
+                              <td className="py-2 px-4 border">{customer.name}</td>
+                              <td className="py-2 px-4 border">{customer.phone || "N/A"}</td>
+                              <td className="py-2 px-4 border">
+                                {customer.createdAt ? new Date(customer.createdAt).toLocaleDateString() : "N/A"}
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={3} className="py-4 text-center text-gray-500">
+                              No new customers found matching your criteria
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
                   </div>
                 </>
               )}

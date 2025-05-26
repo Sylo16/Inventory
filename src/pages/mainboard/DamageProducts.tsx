@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { FaTools } from "react-icons/fa";
 import Breadcrumb from "../../components/breadcrumbs";
 import Header from "../../layouts/header";
 import Sidemenu from "../../layouts/sidemenu";
@@ -322,13 +324,16 @@ const DamagedProducts: React.FC = () => {
     <>
       <Header />
       <Sidemenu />
-      <div className="bg-gray-50 main-content app-content p-6">
+   
+      <div className="main-content app-content p-6">
         <div className="container-fluid">
-          <Breadcrumb
-            title="Damaged Products"
-            links={[{ text: "Dashboard", link: "/dashboard" }]}
-            active="Damaged Products"
-          />
+          <Breadcrumb title="Inventory Status" links={[{ text: "Dashboard", link: "/dashboard" }]} active="Inventory" />
+          <div className="flex justify-end mb-4">
+            <Link to="/index" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center">
+              <FaTools  style={{ marginRight: '8px' }} size={18} />
+              Add Product
+            </Link>
+          </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
             {/* Left Section - Record Damaged Products Form */}
@@ -495,8 +500,7 @@ const DamagedProducts: React.FC = () => {
                     
                     <button 
                       type="submit" 
-                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-                      disabled={isLoading}
+                      className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded inline-flex items-center"
                     >
                       {isLoading ? (
                         <>

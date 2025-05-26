@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import logo from '../assets/images/background/logotransparent.png';
+import logo from '../assets/images/background/jared-removebg-preview.png';
 import { Link } from 'react-router-dom';
 
 function Sidemenu() {

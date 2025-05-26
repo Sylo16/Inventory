@@ -16,16 +16,14 @@ import Reports from './pages/mainboard/Reports';
 import DamagedProducts from './pages/mainboard/DamageProducts';
 import CustomerPurchased from './pages/CustomerInfo/CustomerList';
 import CustomerAdd from './pages/CustomerInfo/CustomerAdd';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 
 
-const queryClient = new QueryClient();
 
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
+
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<HomePage />} />
@@ -39,7 +37,7 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/customerpurchased/addcustomer" element={<CustomerAdd />} />
       </Routes>
     </BrowserRouter>
-    </QueryClientProvider>
+ 
   </StrictMode>
 
   
