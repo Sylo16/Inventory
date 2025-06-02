@@ -1,50 +1,74 @@
-# React + TypeScript + Vite
+# 💼 Sales and Inventory System for JARED Construction Supplies and Trading
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This project is a full-stack **Sales and Inventory Management System** designed specifically for **JARED Construction Supplies and Trading**, a community-based business located in Purok 3, Barangay Tablon. The system helps streamline inventory tracking, automate sales, generate reports, and manage product damages — all with a user-friendly interface.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🔧 Technologies Used
 
-## Expanding the ESLint configuration
+### 🖥️ Frontend
+- React (Vite)
+- Tailwind CSS
+- Axios (for API communication)
+- Toastify (for alerts/notifications)
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+### 🛠️ Backend
+- Laravel 10 (RESTful API)
+- MySQL
+- Composer
 
-- Configure the top-level `parserOptions` property like this:
+---
 
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
-```
+## ⚙️ System Features
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+- 🛒 **Add, Update, and Manage Products**
+- 📦 **Real-Time Inventory Tracking**
+- 📉 **Sales & Revenue Reports**
+- 🗂️ **Track Damaged Items**
+- 🧾 **Customer Purchase Records**
+- 🔒 **User Authentication (Basic)**
+- 📊 **Dashboard Metrics and Trends**
+- 📁 **Export Reports (via backend)**
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
+---
 
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
-```
+## 🗂️ Repository Structure
+
+This project is separated into two repositories:
+
+| Part       | Repo Type | Description                             |
+|------------|-----------|-----------------------------------------|
+| Frontend   | React App | User interface, Axios for API requests  |
+| Backend    | Laravel   | API routes, controllers, DB interaction |
+
+---
+
+## 🚀 Getting Started
+
+### 📁 Project Files
+
+Download the full system via:
+🔗 **Google Drive Folder:**  
+[https://drive.google.com/drive/folders/1C0j2aLOyVjPXB9loLklWFPeGR1fgKrq5?usp=drive_link](https://drive.google.com/drive/folders/1C0j2aLOyVjPXB9loLklWFPeGR1fgKrq5?usp=drive_link)
+
+Includes:
+- Frontend and Backend source code
+- Database SQL dump
+- Documentation
+- Compressed ZIP of the complete project
+
+---
+
+## ⚙️ Backend Setup (Laravel)
+
+1. Clone/download the backend folder
+2. Run the following:
+
+```bash
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate --seed
+php artisan serve
+
+
