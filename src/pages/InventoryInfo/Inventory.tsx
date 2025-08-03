@@ -46,6 +46,42 @@ const Inventory: React.FC = () => {
   });
   const pageSize = 10;
 
+  const checkStockLevels = async (products: Product[]) => {
+    try {
+      for (const product of products) {
+        if (product.hidden) continue;
+
+        if (product.quantity === 0) {
+          await API.post('/notifications', {
+            type: 'out_of_stock',
+            message: `${product.name} is out of stock! Please restock immediately.`,
+            product_id: product.id,
+            product_name: product.name,
+            quantity: product.quantity
+          });
+        } else if (product.quantity < 5) {
+          await API.post('/notifications', {
+            type: 'critical_stock',
+            message: `${product.name} has critical stock level (${product.quantity} remaining)! Order more soon.`,
+            product_id: product.id,
+            product_name: product.name,
+            quantity: product.quantity
+          });
+        } else if (product.quantity < 20) {
+          await API.post('/notifications', {
+            type: 'low_stock',
+            message: `${product.name} has low stock level (${product.quantity} remaining). Consider reordering.`,
+            product_id: product.id,
+            product_name: product.name,
+            quantity: product.quantity
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error sending stock notifications:", error);
+    }
+  };
+
   const fetchProducts = async () => {
     try {
       const response = await API.get("/products");
@@ -59,6 +95,10 @@ const Inventory: React.FC = () => {
         updatedAt: item.updated_at ? new Date(item.updated_at).toLocaleDateString() : "",
         hidden: item.hidden,
       }));
+      
+      // Check stock levels and send notifications
+      await checkStockLevels(items);
+      
       setInventoryItems(items);
     } catch (error) {
       console.error("Error fetching inventory:", error);
@@ -110,33 +150,30 @@ const Inventory: React.FC = () => {
       const response = await API.put(`/products/${selectedProduct.id}`, selectedProduct);
       const updatedProduct = response.data.product;
 
-      // Send notification
       await API.post('/notifications', {
         type: 'product_configured',
         message: `Updated configuration for ${updatedProduct.name}`,
         product_id: selectedProduct.id,
         product_name: updatedProduct.name
-      }); 
-  
-      const normalizedProduct: Product = {
-        id: updatedProduct.id,
-        name: updatedProduct.name,
-        quantity: updatedProduct.quantity,
-        unitPrice: parseFloat(updatedProduct.unit_price) || 0,
-        unitOfMeasurement: updatedProduct.unit_of_measurement,
-        category: updatedProduct.category,
-        updatedAt: updatedProduct.updated_at
-          ? new Date(updatedProduct.updated_at).toLocaleDateString()
-          : "",
-        hidden: updatedProduct.hidden,
-      };
-  
-      setInventoryItems((prevItems) =>
-        prevItems.map((item) =>
-          item.id === selectedProduct.id ? normalizedProduct : item
-        )
+      });
+
+      // Check stock levels after update
+      const updatedItems = inventoryItems.map(item =>
+        item.id === selectedProduct.id ? {
+          ...item,
+          name: updatedProduct.name,
+          quantity: updatedProduct.quantity,
+          unitPrice: parseFloat(updatedProduct.unit_price) || 0,
+          unitOfMeasurement: updatedProduct.unit_of_measurement,
+          category: updatedProduct.category,
+          updatedAt: updatedProduct.updated_at ? new Date(updatedProduct.updated_at).toLocaleDateString() : "",
+          hidden: updatedProduct.hidden,
+        } : item
       );
+      
+      await checkStockLevels(updatedItems);
   
+      setInventoryItems(updatedItems);
       setIsModalOpen(false);
       toast.success("Product updated successfully!");
     } catch (error) {
@@ -188,12 +225,11 @@ const Inventory: React.FC = () => {
 
       await API.post(`/products/${productId}/unhide`);
 
-      // Send a notification about the unhidden product
       await API.post('/notifications', {
         type: 'product_unhidden',
         message: `Unhidden product: ${productId}`,
         product_id: productId,
-        product_name: productId // replace this with actual product name if available
+        product_name: productId
       });
 
       await fetchProducts();
@@ -228,7 +264,6 @@ const Inventory: React.FC = () => {
   
       const updatedProduct = response.data.product;
 
-      // Send notification
       await API.post('/notifications', {
         type: 'product_received',
         message: `Received ${quantityToAdd} units of ${updatedProduct.name}`,
@@ -236,14 +271,15 @@ const Inventory: React.FC = () => {
         product_name: updatedProduct.name,
         quantity: quantityToAdd
       });
-  
-      setInventoryItems((prevItems) =>
-        prevItems.map((item) =>
-          item.id === productId ? { ...item, ...updatedProduct } : item
-        )
+
+      const updatedItems = inventoryItems.map(item =>
+        item.id === productId ? { ...item, ...updatedProduct } : item
       );
+      
+      // Check stock levels after receiving
+      await checkStockLevels(updatedItems);
   
-      // Reset quantity input for the product
+      setInventoryItems(updatedItems);
       setQuantities((prevQuantities) => ({
         ...prevQuantities,
         [productId]: 0,
@@ -291,7 +327,6 @@ const Inventory: React.FC = () => {
 
       const updatedProduct = response.data.product;
 
-      // Send notification
       await API.post('/notifications', {
         type: 'product_deducted',
         message: `Deducted ${quantityToRefund} units of ${updatedProduct.name}`,
@@ -300,13 +335,14 @@ const Inventory: React.FC = () => {
         quantity: quantityToRefund
       });
 
-      setInventoryItems((prevItems) =>
-        prevItems.map((item) =>
-          item.id === productId ? { ...item, ...updatedProduct } : item
-        )
+      const updatedItems = inventoryItems.map(item =>
+        item.id === productId ? { ...item, ...updatedProduct } : item
       );
+      
+      // Check stock levels after deduction
+      await checkStockLevels(updatedItems);
 
-      // Reset refund quantity input for the product
+      setInventoryItems(updatedItems);
       setRefundQuantities((prevQuantities) => ({
         ...prevQuantities,
         [productId]: 0,

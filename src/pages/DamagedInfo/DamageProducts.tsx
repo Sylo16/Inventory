@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { FaTools } from "react-icons/fa";
 import Breadcrumb from "../../components/breadcrumbs";
 import Header from "../../layouts/header";
 import Sidemenu from "../../layouts/sidemenu";
@@ -328,12 +326,7 @@ const DamagedProducts: React.FC = () => {
       <div className="main-content app-content p-6">
         <div className="container-fluid">
           <Breadcrumb title="Inventory Status" links={[{ text: "Dashboard", link: "/dashboard" }]} active="Inventory" />
-          <div className="flex justify-end mb-4">
-            <Link to="/index" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center">
-              <FaTools  style={{ marginRight: '8px' }} size={18} />
-              Add Product
-            </Link>
-          </div>
+          
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
             {/* Left Section - Record Damaged Products Form */}

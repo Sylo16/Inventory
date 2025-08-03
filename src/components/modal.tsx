@@ -1,4 +1,6 @@
 import React, { useEffect } from "react";
+import { Trefoil } from 'ldrs/react';
+import 'ldrs/react/Trefoil.css';
 
 interface ModalProps {
   isOpen: boolean;
@@ -69,7 +71,14 @@ const Modal: React.FC<ModalProps> = ({
         {/* Full modal loading state */}
         {isLoading && (
           <div className="flex justify-center mb-6">
-            <div className="w-8 h-8 border-4 border-t-4 border-blue-500 border-solid rounded-full animate-spin"></div>
+            <Trefoil
+              size={48}
+              stroke={4}
+              strokeLength={0.15}
+              bgOpacity={0.1}
+              speed={1.4}
+              color="#ef4444" // red-500
+            />
           </div>
         )}
 

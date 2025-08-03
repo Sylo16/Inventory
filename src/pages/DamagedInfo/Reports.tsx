@@ -423,7 +423,7 @@ const Reports: React.FC = () => {
             active="Reports" 
           />
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="custom-gradient-card rounded-lg shadow p-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
               <h2 className="text-2xl font-bold text-gray-800">Reports Dashboard</h2>
               <div className="flex space-x-2 mt-4 md:mt-0">
@@ -706,7 +706,7 @@ const Reports: React.FC = () => {
                       <h4 className="font-semibold">Total Transactions</h4>
                       <p className="text-2xl font-bold">{filteredSalesData.length}</p>
                     </div>
-                    <div className="card-purple text-center">
+                    <div className="card-unique text-center">
                       <h4 className="font-semibold">Unique Customers</h4>
                       <p className="text-2xl font-bold">
                         {new Set(filteredSalesData.map(sale => sale.customerName)).size}

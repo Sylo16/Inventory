@@ -53,6 +53,17 @@ function Sidemenu() {
                     <nav className="main-menu-container nav nav-pills flex-col sub-open">
                         <ul className="main-menu">
                             <li
+                                onMouseEnter={() => setHovered('adminprofile')}
+                                onMouseLeave={() => setHovered(null)}
+                                style={hovered === 'adminprofile' ? { ...menuItemStyle, ...hoverEffect } : menuItemStyle}
+                            >
+                                <Link to='/admin' className="side-menu__item" style={{ color: 'inherit' }}>
+                                    <i className="w-6 h-4 side-menu__icon bi bi-person-circle" style={{ color: '#fff' }}></i> 
+                                    <span className="side-menu__label" style={{ color: '#fff' }}>Profile</span>
+                                </Link>
+                            </li>
+
+                            <li
                                 onMouseEnter={() => setHovered('dashboard')}
                                 onMouseLeave={() => setHovered(null)}
                                 style={hovered === 'dashboard' ? { ...menuItemStyle, ...hoverEffect } : menuItemStyle}

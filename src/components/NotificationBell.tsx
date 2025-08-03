@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Bell, BellDot, Package, PackagePlus, PackageMinus, Archive, Settings, AlertOctagon,  UserPlus, Eye } from 'lucide-react';
+import { Bell, BellDot, Package, PackagePlus, PackageMinus, Archive, Settings, AlertOctagon, UserPlus, Eye, AlertTriangle, BatteryWarning, BatteryLow } from 'lucide-react';
 import API from '../api';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -8,7 +8,8 @@ import 'react-toastify/dist/ReactToastify.css';
 interface Notification {
   id: string;
   type: 'product_added' | 'inventory_update' | 'customer_added' | 'damaged_product_reported' 
-        | 'product_received' | 'product_deducted' | 'product_archived' | 'product_configured' | 'product_unhidden' | 'customer_product_added';
+        | 'product_received' | 'product_deducted' | 'product_archived' | 'product_configured' 
+        | 'product_unhidden' | 'customer_product_added' | 'out_of_stock' | 'critical_stock' | 'low_stock';
   message: string;
   read: boolean;
   created_at: string;
@@ -17,8 +18,14 @@ interface Notification {
   quantity?: number;
 }
 
+interface NotificationsResponse {
+  notifications: Notification[];
+  unread_count: number;
+}
+
 const NotificationBell = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -34,65 +41,49 @@ const NotificationBell = () => {
   };
 
   const getNotificationIcon = (type: string) => {
-  switch (type) {
-    case 'product_received':
-      return <PackagePlus className="w-4 h-4" />;
-    case 'product_deducted':
-      return <PackageMinus className="w-4 h-4" />;
-    case 'product_archived':
-      return <Archive className="w-4 h-4" />; 
-    case 'product_unhidden':
-      return <Eye className="w-4 h-4" />;
-    case 'product_configured':
-      return <Settings className="w-4 h-4" />;
-    case 'product_added':
-      return <PackagePlus className="w-4 h-4" />;
-    case 'inventory_update':
-      return <Package className="w-4 h-4" />;
-    case 'damaged_product_reported':
-      return <AlertOctagon className="w-4 h-4" />;
-    case 'customer_added':
-      return <UserPlus className="w-4 h-4" />;
-    case 'customer_product_added':
-      return <PackagePlus className="w-4 h-4" />;
-    default:
-      return <Bell className="w-4 h-4" />;
-  }
-};
-
+    switch (type) {
+      case 'product_received': return <PackagePlus className="w-4 h-4" />;
+      case 'product_deducted': return <PackageMinus className="w-4 h-4" />;
+      case 'product_archived': return <Archive className="w-4 h-4" />;
+      case 'product_unhidden': return <Eye className="w-4 h-4" />;
+      case 'product_configured': return <Settings className="w-4 h-4" />;
+      case 'product_added': return <PackagePlus className="w-4 h-4" />;
+      case 'inventory_update': return <Package className="w-4 h-4" />;
+      case 'damaged_product_reported': return <AlertOctagon className="w-4 h-4" />;
+      case 'customer_added': return <UserPlus className="w-4 h-4" />;
+      case 'customer_product_added': return <PackagePlus className="w-4 h-4" />;
+      case 'out_of_stock': return <AlertTriangle className="w-4 h-4" />;
+      case 'critical_stock': return <BatteryWarning className="w-4 h-4" />;
+      case 'low_stock': return <BatteryLow className="w-4 h-4" />;
+      default: return <Bell className="w-4 h-4" />;
+    }
+  };
 
   const getNotificationColor = (type: string) => {
     switch (type) {
-      case 'product_received':
-        return '#10b981'; // emerald-600
-      case 'product_deducted':
-        return '#dc2626'; // red-600
-      case 'product_archived':
-        return '#d97706'; // amber-600
-      case 'product_unhidden':
-        return '#4ade80'; // green-400
-      case 'product_configured':
-        return '#2563eb'; // blue-600
-      case 'product_added':
-        return '#7c3aed'; // violet-600
-      case 'damaged_product_reported':
-        return '#ef4444'; // red-500
-      case 'inventory_update':
-        return '#4f46e5'; // indigo-600
-      case 'customer_added':  
-        return '#3b82f6'; // blue-600
-      case 'customer_product_added':
-        return '#ca8a04'; // yellow-600
-      default:
-        return '#6b7280'; // gray-500
+      case 'product_received': return '#10b981';
+      case 'product_deducted': return '#dc2626';
+      case 'product_archived': return '#d97706';
+      case 'product_unhidden': return '#4ade80';
+      case 'product_configured': return '#2563eb';
+      case 'product_added': return '#7c3aed';
+      case 'damaged_product_reported': return '#ef4444';
+      case 'inventory_update': return '#4f46e5';
+      case 'customer_added': return '#3b82f6';
+      case 'customer_product_added': return '#ca8a04';
+      case 'out_of_stock': return '#ef4444';
+      case 'critical_stock': return '#f97316';
+      case 'low_stock': return '#eab308';
+      default: return '#6b7280';
     }
   };
 
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
-        const response = await API.get('/notifications');
-        setNotifications(response.data);
+        const response = await API.get<NotificationsResponse>('/notifications');
+        setNotifications(response.data.notifications || []);
+        setUnreadCount(response.data.unread_count || 0);
       } catch (error) {
         console.error('Error fetching notifications:', error);
         toast.error('Failed to load notifications');
@@ -106,14 +97,13 @@ const NotificationBell = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const unreadCount = notifications.filter(n => !n.read).length;
-
   const markAsRead = async (id: string) => {
     try {
       await API.patch(`/notifications/${id}/read`);
       setNotifications(prev =>
-        prev.map(n => (n.id === id ? { ...n, read: true } : n))
+        prev.map(n => n.id === id ? { ...n, read: true } : n)
       );
+      setUnreadCount(prev => prev - 1);
     } catch (error) {
       console.error('Error marking notification as read:', error);
       toast.error('Failed to mark notification as read');
@@ -124,14 +114,14 @@ const NotificationBell = () => {
     try {
       await API.patch('/notifications/mark-all-read');
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-      
+      setUnreadCount(0);
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
       toast.error('Failed to mark all notifications as read');
     }
   };
 
-   const handleNotificationClick = async (notification: Notification) => {
+  const handleNotificationClick = async (notification: Notification) => {
     try {
       await markAsRead(notification.id);
 
@@ -140,6 +130,9 @@ const NotificationBell = () => {
         case 'product_deducted':
         case 'product_configured':
         case 'inventory_update':
+        case 'out_of_stock':
+        case 'critical_stock':
+        case 'low_stock':
           navigate(`/inventory${notification.product_id ? `?product=${notification.product_id}` : ''}`);
           break;
         case 'product_archived':
@@ -158,8 +151,7 @@ const NotificationBell = () => {
         case 'damaged_product_reported':
           navigate(`/damageproducts${notification.product_id ? `?product=${notification.product_id}` : ''}`);
           break;
-        default:
-          break;
+        default: break;
       }
     } catch (error) {
       toast.error('Could not mark as read');
@@ -249,14 +241,7 @@ const NotificationBell = () => {
               zIndex: 10,
             }}
           >
-            <h4
-              style={{
-                fontSize: 14,
-                fontWeight: 600,
-                color: '#1f2937',
-                margin: 0,
-              }}
-            >
+            <h4 style={{ fontSize: 14, fontWeight: 600, color: '#1f2937', margin: 0 }}>
               Notifications
             </h4>
             <button
@@ -299,42 +284,20 @@ const NotificationBell = () => {
                     transition: 'background-color 0.2s',
                   }}
                   onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#f9fafb')}
-                  onMouseLeave={e =>
-                    (e.currentTarget.style.backgroundColor = !notification.read ? '#e0f2fe' : 'transparent')
-                  }
+                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = !notification.read ? '#e0f2fe' : 'transparent')}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div
-                      style={{
-                        color: getNotificationColor(notification.type),
-                        display: 'flex',
-                        alignItems: 'center',
-                      }}
-                    >
+                    <div style={{ color: getNotificationColor(notification.type), display: 'flex', alignItems: 'center' }}>
                       {getNotificationIcon(notification.type)}
                     </div>
                     <div>
-                      <p
-                        style={{
-                          color: '#1f2937',
-                          margin: 0,
-                        }}
-                      >
-                        {notification.message}
-                      </p>
-                      {notification.quantity && (
+                      <p style={{ color: '#1f2937', margin: 0 }}>{notification.message}</p>
+                      {notification.quantity !== undefined && (
                         <p style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>
                           Quantity: {notification.quantity}
                         </p>
                       )}
-                      <p
-                        style={{
-                          fontSize: 12,
-                          color: '#6b7280',
-                          marginTop: 4,
-                          marginBottom: 0,
-                        }}
-                      >
+                      <p style={{ fontSize: 12, color: '#6b7280', marginTop: 4, marginBottom: 0 }}>
                         {formatNotificationDate(notification.created_at)}
                       </p>
                     </div>
@@ -350,19 +313,6 @@ const NotificationBell = () => {
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(-5px); }
           to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes ping {
-          0% {
-            transform: scale(1);
-            opacity: 1;
-          }
-          75%, 100% {
-            transform: scale(2);
-            opacity: 0;
-          }
-        }
-        .animate-ping-slow {
-          animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
         }
         .custom-scrollbar {
           max-height: 20rem;
