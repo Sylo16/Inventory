@@ -94,13 +94,13 @@ function Dashboard() {
         let aggregatedTotalRevenue = 0;
 
         customersData.forEach((customer: Customer) => {
-          customer.products?.forEach((product: Product) => {
+            customer.products?.forEach((product: Product) => {
             const inventoryItem = inventoryData.find(
               (item: InventoryItem) =>
                 item.name === product.product_name || item.id === product.product_id
             );
             const unitPrice = parseFloat(inventoryItem?.unit_price ?? "0");
-            const quantity = parseFloat(product.quantity as any) || 0;
+            const quantity = Number(product.quantity) || 0;
             aggregatedTotalSales += quantity;
             aggregatedTotalRevenue += unitPrice * quantity;
           });
@@ -166,7 +166,7 @@ function Dashboard() {
                   item.name === product.product_name || item.id === product.product_id
               );
               const unitPrice = parseFloat(inventoryItem?.unit_price ?? "0");
-              const quantity = parseFloat(product.quantity as any) || 0;
+              const quantity = Number(product.quantity) || 0;
               return sum + unitPrice * quantity;
             }, 0) ?? 0;
 
@@ -214,35 +214,34 @@ function Dashboard() {
         <div className="container-fluid">
           <Breadcrumb title="Dashboard" />
 
-           <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
-            {/* Stats Cards - Left Section */}
-            <div className="col-span-1 lg:col-span-3 grid grid-cols-1 sm:grid-cols-5 gap-4">
-              {stats.map((stat, index) => (
+          {/* Stats Cards - Full Width Top Section */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+            {stats.map((stat, index) => (
+              <div
+                key={index}
+                className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 p-6 flex flex-col items-center justify-center text-center "
+              >
                 <div
-                  key={index}
-                  className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 p-6 flex flex-col items-center justify-center text-center "
-                >
-                  <div
-                    className="w-14 h-14 flex items-center justify-center rounded-full mb-4 shadow-sm"
-                    style={{
-                      backgroundColor: `${
-                        stat.icon.props.className.includes("indigo")
-                          ? "rgba(79, 70, 229, 0.1)"
-                          : stat.icon.props.className.includes("green")
-                          ? "rgba(34, 197, 94, 0.1)"
-                          : stat.icon.props.className.includes("orange")
-                          ? "rgba(249, 115, 22, 0.1)"
-                          : "rgba(239, 68, 68, 0.1)"
-                      }`,
-                      color: `${
-                        stat.icon.props.className.includes("indigo")
-                          ? "#4F46E5"
-                          : stat.icon.props.className.includes("green")
-                          ? "#22C55E"
-                          : stat.icon.props.className.includes("orange")
-                          ? "#F97316"
-                          : "#EF4444"
-                      }`,
+                  className="w-14 h-14 flex items-center justify-center rounded-full mb-4 shadow-sm"
+                  style={{
+                    backgroundColor: `${
+                      stat.icon.props.className.includes("indigo")
+                        ? "rgba(79, 70, 229, 0.1)"
+                        : stat.icon.props.className.includes("green")
+                        ? "rgba(34, 197, 94, 0.1)"
+                        : stat.icon.props.className.includes("orange")
+                        ? "rgba(249, 115, 22, 0.1)"
+                        : "rgba(239, 68, 68, 0.1)"
+                    }`,
+                    color: `${
+                      stat.icon.props.className.includes("indigo")
+                        ? "#4F46E5"
+                        : stat.icon.props.className.includes("green")
+                        ? "#22C55E"
+                        : stat.icon.props.className.includes("orange")
+                        ? "#F97316"
+                        : "#EF4444"
+                    }`,
                     }}
                   >
                     <span className="text-2xl">{stat.icon}</span>
@@ -263,15 +262,16 @@ function Dashboard() {
                 </div>
               ))}
             </div>
+          </div>
 
 
-            {/* Stock Pie Chart & Customer Bar Chart - Right Section */}
-            <div className="col-span-1 lg:col-span-2 flex flex-col md:flex-row gap-4">
-              {/* Pie Chart */}
-              <div className="w-full md:w-1/2 box main-content-card p-4 shadow-md">
-                <h2 className="text-lg font-semibold mb-4 text-center text-gray-700">
-                  Stock Status Overview
-                </h2>
+          {/* Stock Pie Chart & Customer Bar Chart - Bottom Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+            {/* Pie Chart */}
+            <div className="box main-content-card p-4 shadow-md">
+              <h2 className="text-lg font-semibold mb-4 text-center text-gray-700">
+                Stock Status Overview
+              </h2>
                 <div className="h-72">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -280,7 +280,9 @@ function Dashboard() {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        label={({ name, percent }) => 
+                          percent > 0 ? `${name}: ${(percent * 100).toFixed(0)}%` : ''
+                        }
                         outerRadius={80}
                         fill="#8884d8"
                         dataKey="value"
@@ -296,11 +298,11 @@ function Dashboard() {
                   </ResponsiveContainer>
                 </div>
               </div>
-              {/* Customer List Bar Chart */}
-              <div className="w-full md:w-1/2 box main-content-card p-4 shadow-md">
-                <h2 className="text-lg font-semibold mb-4 text-center text-gray-700">
-                  Top Customers by Total Spent
-                </h2>
+            {/* Customer List Bar Chart */}
+            <div className="box main-content-card p-4 shadow-md">
+              <h2 className="text-lg font-semibold mb-4 text-center text-gray-700">
+                Top Customers by Total Spent
+              </h2>
                 <div className="h-72">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
@@ -316,7 +318,6 @@ function Dashboard() {
                   </ResponsiveContainer>
                 </div>
               </div>
-            </div>
           </div>
 
           {/* Main Content Section */}
@@ -411,8 +412,7 @@ function Dashboard() {
               </div>
             </div>
           </div>
-        </div>
-      </div>
+        </div>  
 
       <div className="footer bg-white shadow-lg rounded-2xl p-4 mt-10">
         <p className="text-center text-gray-600">

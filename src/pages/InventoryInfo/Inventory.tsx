@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from "react";
-import { PackagePlus, Settings2, Archive, ArchiveRestore, ArrowUpDown, Undo2 } from "lucide-react";
+import React, { useEffect, useState, useCallback } from "react";
 import { FaTools } from 'react-icons/fa';
 import Breadcrumb from "../../components/breadcrumbs";
 import Header from "../../layouts/header";
@@ -8,6 +7,11 @@ import { Link } from "react-router-dom";
 import API from "../../api";
 import { toast, ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
+import EditPriceModal from "../../components/Inventory/EditPriceModal";
+import ProductTableRow from "../../components/Inventory/ProductTableRow";
+import ProductCard from "../../components/Inventory/ProductCard";
+import StatsCards from "../../components/Inventory/StatsCards";
+import SearchFilterBar from "../../components/Inventory/SearchFilterBar";
 
 interface Product {
   id: string;
@@ -31,6 +35,7 @@ const Inventory: React.FC = () => {
   const [showHidden, setShowHidden] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [loadingStates, setLoadingStates] = useState<{
     receive: { [key: string]: boolean };
     deduct: { [key: string]: boolean };
@@ -82,14 +87,23 @@ const Inventory: React.FC = () => {
     }
   };
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       const response = await API.get("/products");
-      const items = response.data.map((item: any) => ({
+      const items = response.data.map((item: {
+        id: string;
+        name: string;
+        quantity: number;
+        unit_price: string | number;
+        unit_of_measurement: string;
+        category?: string;
+        updated_at?: string;
+        hidden: boolean;
+      }) => ({
         id: item.id,
         name: item.name,
         quantity: item.quantity,
-        unitPrice: parseFloat(item.unit_price) || 0,
+        unitPrice: typeof item.unit_price === 'string' ? parseFloat(item.unit_price) || 0 : Number(item.unit_price) || 0,
         unitOfMeasurement: item.unit_of_measurement,
         category: item.category,
         updatedAt: item.updated_at ? new Date(item.updated_at).toLocaleDateString() : "",
@@ -103,11 +117,11 @@ const Inventory: React.FC = () => {
     } catch (error) {
       console.error("Error fetching inventory:", error);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [fetchProducts]);
 
   const handleQuantityChange = (productId: string, value: string) => {
     const numValue = parseInt(value) || 0;
@@ -196,18 +210,25 @@ const Inventory: React.FC = () => {
 
       await API.post(`/products/${productId}/hide`);
 
-      await API.post('/notifications', {
+      // Update local state immediately instead of refetching all products
+      setInventoryItems(prevItems =>
+        prevItems.map(item =>
+          item.id === productId ? { ...item, hidden: true } : item
+        )
+      );
+
+      // Send notification (don't await to avoid blocking)
+      API.post('/notifications', {
         type: 'product_archived',
         message: `Archived product: ${productId}`,
         product_id: productId,
         product_name: productId
-      });
+      }).catch(err => console.error("Notification error:", err));
 
-      await fetchProducts();
-      toast.success("Product hidden successfully!");
+      toast.success("Product archived successfully!");
     } catch (error) {
       console.error("Error hiding product:", error);
-      toast.error("Failed to hide product.");
+      toast.error("Failed to archive product.");
     } finally {
       setLoadingStates(prev => ({
         ...prev,
@@ -225,18 +246,25 @@ const Inventory: React.FC = () => {
 
       await API.post(`/products/${productId}/unhide`);
 
-      await API.post('/notifications', {
+      // Update local state immediately instead of refetching all products
+      setInventoryItems(prevItems =>
+        prevItems.map(item =>
+          item.id === productId ? { ...item, hidden: false } : item
+        )
+      );
+
+      // Send notification (don't await to avoid blocking)
+      API.post('/notifications', {
         type: 'product_unhidden',
-        message: `Unhidden product: ${productId}`,
+        message: `Restored product: ${productId}`,
         product_id: productId,
         product_name: productId
-      });
+      }).catch(err => console.error("Notification error:", err));
 
-      await fetchProducts();
-      toast.success("Product unhidden successfully!");
+      toast.success("Product restored successfully!");
     } catch (error) {
-      console.error("Error unhiding product:", error);
-      toast.error("Failed to unhide product.");
+      console.error("Error restoring product:", error);
+      toast.error("Failed to restore product.");
     } finally {
       setLoadingStates(prev => ({
         ...prev,
@@ -369,10 +397,12 @@ const Inventory: React.FC = () => {
     }
   };
 
-  const filteredItems = inventoryItems.filter((item) =>
-    item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (item.category && item.category.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredItems = inventoryItems.filter((item) => {
+    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.category && item.category.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesCategory = selectedCategory === "All" || item.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   const sortedItems = [...filteredItems].sort((a, b) => {
     let comparison = 0;
@@ -383,273 +413,189 @@ const Inventory: React.FC = () => {
     }
     return sortOrder === "asc" ? comparison : -comparison;
   });
-
+  
   const filteredByHidden = sortedItems.filter(item => showHidden ? item.hidden : !item.hidden);
   const totalPages = Math.ceil(filteredByHidden.length / pageSize);
   const startIndex = (currentPage - 1) * pageSize;
   const visibleItems = filteredByHidden.slice(startIndex, startIndex + pageSize);
+
+  // Get unique categories
+  const categories: string[] = ["All", ...Array.from(new Set(inventoryItems.map(item => item.category).filter((cat): cat is string => Boolean(cat))))];
+
+  // Calculate stock statistics
+
+  // Calculate stock statistics
+  const totalProducts = filteredByHidden.length;
+  const outOfStock = filteredByHidden.filter(item => item.quantity === 0).length;
+  const lowStock = filteredByHidden.filter(item => item.quantity > 0 && item.quantity < 20).length;
+  const totalValue = filteredByHidden.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
 
   return (
     <>
       <Header />
       <Sidemenu />
       <ToastContainer />
-      <div className="main-content app-content p-6">
+      <div className="main-content app-content p-3 sm:p-5">
         <div className="container-fluid">
-          <Breadcrumb title="Inventory Status" links={[{ text: "Dashboard", link: "/dashboard" }]} active="Inventory" />
-          <div className="flex justify-end mb-4">
-            <Link to="/inventory/addproduct" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center">
-              <FaTools  style={{ marginRight: '8px' }} size={18} />
-              Add Product
-            </Link>
+          <Breadcrumb title="Inventory" links={[{ text: "Dashboard", link: "/dashboard" }]} active="Stock Management" />
+          
+          {/* Compact Header with Stats */}
+          <div className="bg-construction-gradient rounded-lg p-4 sm:p-5 mb-4 shadow-construction">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold text-white">Stock Inventory</h1>
+                <p className="text-white/90 text-sm mt-1">Manage your construction supplies and materials</p>
+              </div>
+              <Link 
+                to="/inventory/addproduct" 
+                className="bg-white text-construction hover:bg-accent-light hover:text-white px-4 py-2.5 rounded-lg flex items-center gap-2 font-semibold shadow-sm transition-all text-sm sm:text-base whitespace-nowrap"
+              >
+                <FaTools size={18} />
+                Add New Product
+              </Link>
+            </div>
+ 
+            {/* Stats Cards */}
+            <StatsCards
+              totalProducts={totalProducts}
+              outOfStock={outOfStock}
+              lowStock={lowStock}
+              totalValue={totalValue}
+            />
           </div>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-3xl font-bold text-blue-900">Construction Supplies</h2>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <button
-                onClick={() => {
-                  setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
-                  setSortBy((prev) => (prev === "name" ? "quantity" : "name"));
-                }}
-                className="p-2 border rounded-lg bg-gray-100 flex items-center gap-1"
-              >
-                Sort by {sortBy === "name" ? "Quantity" : "Name"}
-                <ArrowUpDown className={`transform ${sortOrder === "desc" ? "rotate-180" : ""}`} />
-              </button>
-              <button
-                onClick={() => setShowHidden(prev => !prev)}
-                className="p-2 border rounded-lg bg-gray-600 text-white hover:bg-indigo-700"
-              >
-                {showHidden ? "Show Visible Products" : "Show Hidden Products"}
-              </button>
+
+          {/* Search and Filter Bar */}
+          <SearchFilterBar
+            searchTerm={searchTerm}
+            selectedCategory={selectedCategory}
+            categories={categories}
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            showHidden={showHidden}
+            onSearchChange={setSearchTerm}
+            onCategoryChange={setSelectedCategory}
+            onSortToggle={() => {
+              setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+              setSortBy((prev) => (prev === "name" ? "quantity" : "name"));
+            }}
+            onShowHiddenToggle={() => setShowHidden(prev => !prev)}
+          />
+
+          {/* Info Banner */}
+          {!showHidden && (
+            <div className="bg-construction-light/10 border-l-4 border-construction p-3 mb-4 rounded">
+              <p className="text-sm text-construction-dark">
+                <strong>💡 Quick Guide:</strong> Enter quantity and click <strong>Receive</strong> to add stock, or <strong>Deduct</strong> to remove stock. Use the gear icon to edit prices and archive icon to hide products.
+              </p>
+            </div>
+          )}
+
+          {/* Products List - Mobile & Desktop Responsive */}
+          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+            {/* Desktop View - Table */}
+            <div className="hidden lg:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-neutral-100 border-b border-neutral-200">
+                  <tr>
+                    <th className="py-3 px-4 text-left font-semibold text-neutral-700">Product Name</th>
+                    <th className="py-3 px-4 text-left font-semibold text-neutral-700">Category</th>
+                    <th className="py-3 px-4 text-center font-semibold text-neutral-700">Stock Status</th>
+                    <th className="py-3 px-4 text-center font-semibold text-neutral-700">Unit</th>
+                    <th className="py-3 px-4 text-right font-semibold text-neutral-700">Price</th>
+                    <th className="py-3 px-4 text-center font-semibold text-neutral-700">Last Updated</th>
+                    <th className="py-3 px-4 text-center font-semibold text-neutral-700">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-200">
+                  {visibleItems.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-8 text-center text-neutral-500">
+                        {searchTerm ? "No products found matching your search." : showHidden ? "No archived products." : "No products yet. Add your first product!"}
+                      </td>
+                    </tr>
+                  ) : (
+                    visibleItems.map((item) => (
+                      <ProductTableRow
+                        key={item.id}
+                        item={item}
+                        quantities={quantities}
+                        refundQuantities={refundQuantities}
+                        loadingStates={loadingStates}
+                        onQuantityChange={handleQuantityChange}
+                        onRefundQuantityChange={handleRefundQuantityChange}
+                        onReceiveProduct={handleReceiveProduct}
+                        onRefundProduct={handleRefundProduct}
+                        onUpdateProduct={handleUpdateProduct}
+                        onHideProduct={handleHideProduct}
+                        onUnhideProduct={handleUnhideProduct}
+                      />
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile View - Cards */}
+            <div className="lg:hidden divide-y divide-neutral-200">
+              {visibleItems.length === 0 ? (
+                <div className="py-8 text-center text-neutral-500 px-4">
+                  {searchTerm ? "No products found." : showHidden ? "No archived products." : "No products yet. Add your first product!"}
+                </div>
+              ) : (
+                visibleItems.map((item) => (
+                  <ProductCard
+                    key={item.id}
+                    item={item}
+                    quantities={quantities}
+                    refundQuantities={refundQuantities}
+                    loadingStates={loadingStates}
+                    onQuantityChange={handleQuantityChange}
+                    onRefundQuantityChange={handleRefundQuantityChange}
+                    onReceiveProduct={handleReceiveProduct}
+                    onRefundProduct={handleRefundProduct}
+                    onUpdateProduct={handleUpdateProduct}
+                    onHideProduct={handleHideProduct}
+                    onUnhideProduct={handleUnhideProduct}
+                  />
+                ))
+              )}
             </div>
           </div>
 
-          <input
-            type="text"
-            placeholder="Search products or categories..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="p-3 border rounded-lg w-full mb-4"
-          />
-
-          <h3 className="text-xl font-semibold mb-2 text-gray-700">
-            {showHidden ? "Hidden Products" : "Visible Products"}
-          </h3>
-
-          <div className="overflow-x-auto">
-            <table className="w-full border mt-2 text-center text-md">
-              <thead>
-                <tr className="bg-gray-200 hover:bg-blue-50 transition-all duration-150 ease-in-out">
-                  <th className="py-3 px-4 border">Product</th>
-                  <th className="py-3 px-4 border">Category</th>
-                  <th className="py-3 px-4 border">Quantity (Status)</th>
-                  <th className="py-3 px-4 border">Unit</th>
-                  <th className="py-3 px-4 border">Price</th>
-                  <th className="py-3 px-4 border">Last Updated</th>
-                  <th className="py-3 px-4 border">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibleItems.map((item) => (
-                  <tr key={item.id} className={`border hover:bg-gray-50 ${item.hidden ? 'blur-sm opacity-50' : ''}`}>
-                    <td className="py-3 px-4 text-md font-medium text-gray-900">{item.name}</td>
-                    <td className="py-3 px-4">{item.category}</td>
-                    <td className="py-3 px-4">
-                      <div className="flex flex-col items-center">
-                        <span className={`px-2 py-1 rounded font-semibold text-sm ${item.quantity === 0
-                          ? 'bg-gray-500 text-white' // Gray for out of stock
-                          : item.quantity < 10
-                          ? 'bg-red-500 text-white'
-                          : item.quantity < 50
-                          ? 'bg-yellow-200 text-black'
-                          : 'bg-green-500 text-white'
-                          }`}>
-                          {item.quantity}
-                        </span>
-                        {item.quantity === 0 && (
-                          <span className="text-xs text-gray-700 mt-1 font-medium bg-gray-100 px-2 py-0.5 rounded">
-                            Out of Stock
-                          </span>
-                        )}
-                        {item.quantity > 0 && item.quantity < 10 && (
-                          <span className="text-xs text-red-600 mt-1 font-medium bg-red-100 px-2 py-0.5 rounded">
-                            Critical Stock
-                          </span>
-                        )}
-                        {item.quantity >= 10 && item.quantity < 50 && (
-                          <span className="text-xs text-yellow-800 mt-1 font-medium bg-yellow-100 px-2 py-0.5 rounded">
-                            Low Stock
-                          </span>
-                        )}
-                        {item.quantity >= 50 && (
-                          <span className="text-xs text-green-800 mt-1 font-medium bg-green-100 px-2 py-0.5 rounded">
-                            In Stock
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">{item.unitOfMeasurement}</td>
-                    <td className="py-3 px-4">₱{item.unitPrice.toFixed(2)}</td>
-                    <td className="py-3 px-4">{item.updatedAt}</td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center justify-center gap-3">
-                        {/* Receive Section */}
-                        <div className="flex flex-col gap-1">
-                          <input
-                            type="number"
-                            min="0"
-                            value={quantities[item.id] ?? ''}
-                            onChange={(e) => handleQuantityChange(item.id, e.target.value)}
-                            placeholder="Qty"
-                            className="w-16 p-1 border rounded text-center"
-                            disabled={item.hidden || loadingStates.receive[item.id]}
-                          />
-                          <button
-                            onClick={() => handleReceiveProduct(item.id)}
-                            className="bg-green-500 hover:bg-green-600 text-white py-1 px-2 rounded flex items-center gap-1 transition-colors text-xs"
-                            disabled={item.hidden || loadingStates.receive[item.id]}
-                          >
-                            {loadingStates.receive[item.id] ? (
-                              <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
-                            ) : (
-                              <>
-                                <PackagePlus className="w-3 h-3" />
-                                <span>Receive</span>
-                              </>
-                            )}
-                          </button>
-                        </div>
-
-                        {/* Refund Section */}
-                        <div className="flex flex-col gap-1">
-                          <input
-                            type="number"
-                            min="0"
-                            max={item.quantity}
-                            value={refundQuantities[item.id] ?? ''}
-                            onChange={(e) => handleRefundQuantityChange(item.id, e.target.value)}
-                            placeholder="Qty"
-                            className="w-16 p-1 border rounded text-center"
-                            disabled={item.hidden || loadingStates.deduct[item.id]}
-                          />
-                          <button
-                            onClick={() => handleRefundProduct(item.id)}
-                            className="bg-orange-500 hover:bg-orange-600 text-white py-1 px-2 rounded flex items-center gap-1 transition-colors text-xs"
-                            disabled={item.hidden || loadingStates.deduct[item.id]}
-                          >
-                            {loadingStates.deduct[item.id] ? (
-                              <div className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
-                            ) : (
-                              <>
-                                <Undo2 className="w-3 h-3" />
-                                <span>Deduct</span>
-                              </>
-                            )}
-                          </button>
-                        </div>
-
-                        {/* Other Actions */}
-                        <div className="flex flex-col gap-1">
-                          <button
-                            onClick={() => handleUpdateProduct(item.id)}
-                            className="p-1 text-gray-500 hover:text-indigo-600 transition-colors"
-                            title="Configure product"
-                            disabled={item.hidden || loadingStates.edit[item.id]}
-                          >
-                            {loadingStates.edit[item.id] ? (
-                              <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
-                            ) : (
-                              <Settings2 className="w-4 h-4" />
-                            )}
-                          </button>
-                          
-                          <button
-                            onClick={() => item.hidden ? handleUnhideProduct(item.id) : handleHideProduct(item.id)}
-                            className="p-1 text-gray-500 hover:text-amber-600 transition-colors"
-                            title={item.hidden ? "Make visible" : "Archive product"}
-                            disabled={item.hidden ? loadingStates.unhide[item.id] : loadingStates.hide[item.id]}
-                          >
-                            {item.hidden ? (
-                              loadingStates.unhide[item.id] ? (
-                                <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
-                              ) : (
-                                <ArchiveRestore className="w-4 h-4" />
-                              )
-                            ) : (
-                              loadingStates.hide[item.id] ? (
-                                <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
-                              ) : (
-                                <Archive className="w-4 h-4" />
-                              )
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="flex justify-center items-center mt-4 space-x-2">
-            <button
-              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-              className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
-              disabled={currentPage === 1}
-            >
-              Previous
-            </button>
-            <span className="self-center">{`Page ${currentPage} of ${totalPages}`}</span>
-            <button
-              onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-              className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
-              disabled={currentPage === totalPages}
-            >
-              Next
-            </button>
-          </div>
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center mt-4 gap-2">
+              <button
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                className="bg-construction hover:bg-construction-dark text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                disabled={currentPage === 1}
+              >
+                Previous
+              </button>
+              <span className="px-4 py-2 bg-white border border-neutral-300 rounded-lg font-medium text-neutral-700">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                className="bg-construction hover:bg-construction-dark text-white px-4 py-2 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
-      {isModalOpen && selectedProduct && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-1/3">
-            <h3 className="text-xl font-bold mb-4">Edit Product</h3>
-            
-            <div className="mb-4">
-              <label className="block mb-1">Unit Price</label>
-              <input
-                type="number"
-                min="0"
-                value={selectedProduct.unitPrice}
-                onChange={(e) => handleModalChange("unitPrice", e.target.value)}
-                className="w-full p-2 border rounded"
-              />
-            </div>
-
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={handleCloseModal}
-                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveChanges}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center justify-center"
-                disabled={loadingStates.edit[selectedProduct.id]}
-              >
-                {loadingStates.edit[selectedProduct.id] ? (
-                  <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent mr-2"></div>
-                ) : null}
-                Save Changes
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Edit Price Modal */}
+      <EditPriceModal
+        isOpen={isModalOpen}
+        product={selectedProduct}
+        isLoading={selectedProduct ? loadingStates.edit[selectedProduct.id] : false}
+        onClose={handleCloseModal}
+        onSave={handleSaveChanges}
+        onChange={handleModalChange}
+      />
     </>
   );
 };

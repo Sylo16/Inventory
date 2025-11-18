@@ -27,7 +27,7 @@ const Breadcrumb: React.FC<BreadcrumbProps> = ({ title = "Dashboard", links = []
                             ))}
                             {active && (
                                 <li className="text-sm">
-                                    <Link className="flex items-center text-gray-500 dark:text-[#8c9097] dark:text-white/50 hover:text-primary" to="#">
+                                    <Link className="flex items-center text-primary hover:text-primary dark:text-primary" to="#">
                                         {active}
                                     </Link>
                                 </li>

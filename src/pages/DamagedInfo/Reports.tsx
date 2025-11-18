@@ -71,16 +71,29 @@ const Reports: React.FC = () => {
     setLoading(true);
     try {
       const response = await API.get("/products");
-      const items = response.data.map((item: any) => ({
+      type ProductApi = {
+        id: string;
+        name: string;
+        quantity: number;
+        unit_price?: string | number;
+        unit_of_measurement?: string;
+        category?: string;
+        updated_at?: string;
+        created_at?: string;
+        hidden?: boolean;
+      };
+
+      const data = response.data as ProductApi[] | undefined;
+      const items: ReportData[] = (data || []).map(item => ({
         id: item.id,
         name: item.name,
         quantity: item.quantity,
-        unitPrice: parseFloat(item.unit_price) || 0,
-        unitOfMeasurement: item.unit_of_measurement,
+        unitPrice: typeof item.unit_price === 'string' ? parseFloat(item.unit_price) || 0 : Number(item.unit_price) || 0,
+        unitOfMeasurement: item.unit_of_measurement || "",
         category: item.category,
         updatedAt: item.updated_at,
         createdAt: item.created_at,
-        hidden: item.hidden,
+        hidden: !!item.hidden,
       }));
       setInventoryData(items);
     } catch (error) {
@@ -98,13 +111,35 @@ const Reports: React.FC = () => {
         API.get("/customers"),
         API.get("/products")
       ]);
+      type CustomerApi = {
+        id: string;
+        name: string;
+        purchase_date?: string;
+        created_at?: string;
+        products?: Array<{
+          product_id?: string;
+          product_name?: string;
+          unit_price?: string | number;
+          quantity?: string | number;
+        }>;
+      };
+
+      type ProductApi = {
+        id: string;
+        name: string;
+        unit_price?: string | number;
+        unit_of_measurement?: string;
+      };
+
+      const customers = customersResponse.data as CustomerApi[] | undefined;
+      const products = productsResponse.data as ProductApi[] | undefined;
 
       const sales: SalesReport[] = [];
-      customersResponse.data.forEach((customer: any) => {
+      (customers || []).forEach((customer) => {
         if (customer.products && customer.products.length > 0) {
-          customer.products.forEach((purchase: any) => {
-            const product = productsResponse.data.find(
-              (p: any) => p.id === purchase.product_id || p.name === purchase.product_name
+          customer.products.forEach((purchase) => {
+            const product = (products || []).find(
+              (p) => p.id === purchase.product_id || p.name === purchase.product_name
             );
             const unitPrice = Number(product?.unit_price || purchase.unit_price || 0);
             const quantity = Number(purchase.quantity) || 0;
@@ -134,8 +169,13 @@ const Reports: React.FC = () => {
     setLoading(true);
     try {
       const response = await API.get("/damaged-products");
-      const updatedProducts = response.data.map((product: any) => ({
-        ...product,
+      const data = response.data as Array<Partial<DamagedProduct> & { created_at?: string }> | undefined;
+      const updatedProducts: DamagedProduct[] = (data || []).map(product => ({
+        customer_name: product.customer_name || "",
+        product_name: product.product_name || "",
+        quantity: product.quantity || "0",
+        reason: product.reason || "",
+        date: product.date || product.created_at || "",
         unit_of_measurement: product.unit_of_measurement || "",
         createdAt: product.created_at
       }));
@@ -152,10 +192,11 @@ const Reports: React.FC = () => {
     setLoading(true);
     try {
       const response = await API.get("/customers");
-      const customers = response.data.map((customer: any) => ({
+      const data = response.data as Array<{ id: string; name: string; phone?: string; created_at?: string }> | undefined;
+      const customers = (data || []).map(customer => ({
         id: customer.id,
         name: customer.name,
-        phone: customer.phone,
+        phone: customer.phone || "",
         createdAt: customer.created_at
       }));
       setCustomersData(customers);
@@ -188,7 +229,7 @@ const Reports: React.FC = () => {
     return "in";
   };
 
-  const filterByTime = (items: any[]) => {
+  const filterByTime = <T,>(items: T[]) => {
     const now = new Date();
     const today = new Date(now.setHours(0, 0, 0, 0));
     const startOfWeek = new Date(today);
@@ -197,8 +238,9 @@ const Reports: React.FC = () => {
     const startOfYear = new Date(today.getFullYear(), 0, 1);
 
     return items.filter(item => {
-      if (!item.createdAt) return false;
-      const itemDate = new Date(item.createdAt);
+      const created = (item as unknown as { createdAt?: string }).createdAt;
+      if (!created) return false;
+      const itemDate = new Date(created);
 
       switch (timeFilter) {
         case "today":
@@ -212,7 +254,7 @@ const Reports: React.FC = () => {
         default:
           return true;
       }
-    });
+    }) as T[];
   };
 
   const filteredInventoryData = filterByTime(inventoryData.filter(item => {
@@ -541,7 +583,7 @@ const Reports: React.FC = () => {
                   <select
                     id="stockStatus"
                     value={stockStatusFilter}
-                    onChange={(e) => setStockStatusFilter(e.target.value as any)}
+                    onChange={(e) => setStockStatusFilter(e.target.value as "all" | "in" | "low" | "critical" | "out")}
                     className="border rounded p-2"
                   >
                     <option value="all">All Stock</option>
@@ -584,7 +626,7 @@ const Reports: React.FC = () => {
                   <select
                     id="timeFilter"
                     value={timeFilter}
-                    onChange={(e) => setTimeFilter(e.target.value as any)}
+                    onChange={(e) => setTimeFilter(e.target.value as "all" | "today" | "week" | "month" | "year")}
                     className="border rounded p-2"
                   >
                     <option value="all">All Time</option>
@@ -752,16 +794,16 @@ const Reports: React.FC = () => {
                 <>
                   <div className="mb-4 grid grid-cols-3 md:grid-cols-3 gap-4">
                     <div className="card-red text-center">
-                      <h4>Total Damaged Items</h4>
-                      <p>{calculateTotalDamaged()}</p>
+                      <h4 className="font-semibold">Total Damaged Items</h4>
+                      <p className="text-2xl font-bold">{calculateTotalDamaged()}</p>
                     </div>
                     <div className="card-orange text-center">
-                      <h4>Total Records</h4>
-                      <p>{filteredDamagedData.length}</p>
+                      <h4 className="font-semibold">Total Records</h4>
+                      <p className="text-2xl font-bold">{filteredDamagedData.length}</p>
                     </div>
                     <div className="card-yellow text-center">
-                      <h4>Affected Customers</h4>
-                      <p>{new Set(filteredDamagedData.map(item => item.customer_name)).size}</p>
+                      <h4 className="font-semibold">Affected Customers</h4>
+                      <p className="text-2xl font-bold">{new Set(filteredDamagedData.map(item => item.customer_name)).size}</p>
                     </div>
                   </div>
 

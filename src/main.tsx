@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './assets/css/style.css';
+import './index.css';
 {/*Main*/}
 import Dashboard from './pages/dashboard';
 {/*Pages*/}
@@ -17,6 +18,7 @@ import DamagedProducts from './pages/DamagedInfo/DamageProducts';
 import CustomerPurchased from './pages/CustomerInfo/CustomerList';
 import CustomerAdd from './pages/CustomerInfo/CustomerAdd';
 import { UserProvider } from './contexts/UserContext';
+import RecordDamagedProducts from './pages/DamagedInfo/RecordDamagedProducts';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -28,6 +30,7 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/login" element={<Login />} />
         <Route path="/admin" element={<AdminProfile />} />
         <Route path="/damageproducts" element={<DamagedProducts />} />
+        <Route path="/damaged-products/record" element={<RecordDamagedProducts />} />
         <Route path="/inventory" element={<Inventory />} />
         <Route path="/inventory/addproduct" element={<AddProduct />} />
         <Route path="/dashboard" element={<Dashboard />} />

@@ -1,20 +1,22 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { Grid, html } from "gridjs";
-import "gridjs/dist/theme/mermaid.css";
 import Breadcrumb from "../../components/breadcrumbs";
 import Header from "../../layouts/header";
 import Sidemenu from "../../layouts/sidemenu";
-import ProfileImages from "../../assets/images/faces/14.jpg";
 import API from "../../api";
 import Modal from "../../components/modal";
-import { FiUser } from "react-icons/fi";
-import AddProductForm from "../../components/AddProductForm"; 
+import { FiUser, FiUserPlus } from "react-icons/fi";
+import AddProductForm from "../../components/Customer/AddProductForm"; 
+import Receipt from "../../components/Customer/Receipt";
+import CustomerTable from "../../components/Customer/CustomerTable";
+import CustomerDetailsView from "../../components/Customer/CustomerDetailsView";
 import { toast, ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
+import { useReactToPrint } from 'react-to-print';
 
 
 type Product = {
+  product_id?: string;
   product_name: string;
   category: string;
   unit: string;
@@ -40,8 +42,7 @@ type InventoryItem = {
 };
 
 const CustomerPurchased: React.FC = () => {
-  const gridRef = useRef<HTMLDivElement>(null);
-  const gridInstanceRef = useRef<any>(null);
+  const receiptRef = useRef<HTMLDivElement>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -49,125 +50,57 @@ const CustomerPurchased: React.FC = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
   const [newlyAddedProducts, setNewlyAddedProducts] = useState<Product[]>([]);
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [receiptData, setReceiptData] = useState<any>(null);
+
+  // Print handler
+  const handlePrint = useReactToPrint({
+    contentRef: receiptRef,
+    documentTitle: `Receipt-${selectedCustomer?.name}-${Date.now()}`,
+    onAfterPrint: () => {
+      toast.success("Receipt printed successfully!");
+      // Delay hiding the receipt to ensure print completes
+      setTimeout(() => {
+        setShowReceipt(false);
+      }, 100);
+    },
+  });
 
   // Fetch customers and inventory
   useEffect(() => {
     const fetchData = async () => {
       try {
         const [customersResponse, inventoryResponse] = await Promise.all([
-          API.get("/customers"),
-          API.get("/products"),
+          API.get<Customer[]>("/customers"),
+          API.get<InventoryItem[]>("/products"),
         ]);
         setCustomers(customersResponse.data);
         setInventoryItems(inventoryResponse.data);
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error fetching data:", error);
-        toast.error("Failed to fetch customers or inventory.");
+        const message = error instanceof Error ? error.message : 'Failed to fetch customers or inventory.';
+        toast.error(message);
       }
     };
     fetchData();
   }, []);
 
-  // GridJS setup
-  useEffect(() => {
-    if (gridRef.current && viewMode === "list") {
-      if (gridInstanceRef.current) {
-        gridInstanceRef.current.destroy();
-        gridRef.current.innerHTML = "";
-      }
-
-      gridInstanceRef.current = new Grid({
-        columns: [
-          { name: "#", width: "10px" },
-          {
-            name: "Customer Name",
-            width: "200px",
-            formatter: (_: any, row: any) =>
-              html(
-                `<div class="flex items-center gap-3">
-                  <img src="${ProfileImages}" alt="Avatar" class="w-8 h-8 rounded-full" />
-                  <span>${row.cells[1].data}</span>
-                </div>`
-              ),
-          },
-          { name: "Phone", width: "100px" },
-          { name: "Purchase Date", width: "150px" },
-          {
-            name: "Actions",
-            width: "60px",
-            formatter: (_: any, row: any) =>
-              html(
-                `<div class="flex justify-center gap-2">
-                  <button 
-                    class="bg-yellow-500 text-white px-3 py-1 rounded text-sm flex items-center gap-1 view-btn"
-                    data-customer='${JSON.stringify({
-                      id: row.cells[0].data,
-                      name: row.cells[1].data,
-                      phone: row.cells[2].data,
-                      purchaseDate: row.cells[3].data,
-                      products: row.cells[4].data,
-                    })}'>
-                    <i class="bi bi-eye"></i>
-                    View
-                  </button>                
-                </div>`
-              ),
-          },
-        ],
-        pagination: { limit: 10 },
-        search: true,
-        sort: true,
-        data: customers.map((customer, index) => [
-          customer.id || (index + 1).toString(),
-          customer.name,
-          customer.phone,
-          customer.purchase_date?.split("T")[0] || "",
-          customer.products,
-        ]),
-      });
-
-      gridInstanceRef.current.render(gridRef.current);
-
-      const handleClick = (event: Event) => {
-        const target = event.target as HTMLElement;
-        const viewBtn = target.closest(".view-btn") as HTMLElement;
-        const addBtn = target.closest(".add-btn") as HTMLElement;
-
-        if (viewBtn) {
-          event.preventDefault();
-          const customerData = JSON.parse(viewBtn.getAttribute("data-customer") || "{}");
-          setSelectedCustomer(customerData);
-          setNewlyAddedProducts([]); // Reset on view
-          setViewMode("detail");
-        }
-        if (addBtn) {
-          event.preventDefault();
-          const customerData = JSON.parse(addBtn.getAttribute("data-customer") || "{}");
-          setAddCustomerData(customerData);
-          setIsAddModalOpen(true);
-        }
-      };
-
-      gridRef.current.addEventListener("click", handleClick);
-
-      return () => {
-        gridRef.current?.removeEventListener("click", handleClick);
-      };
-    }
-  }, [customers, viewMode]);
-
-  // Handler for adding products to existing customer
-  const handleAddProductsToCustomer = async ({
+// Handler for adding products to existing customer
+const handleAddProductsToCustomer = async ({
   products,
   purchaseDate,
+  amountPaid,
+  change,
 }: {
-  products: {
+  products: Array<{
     productName: string;
     category: string;
     unit: string;
     quantity: string;
-  }[];
+  }>;
   purchaseDate: string;
+  amountPaid?: number;
+  change?: number;
 }) => {
   if (!addCustomerData) return;
 
@@ -207,6 +140,15 @@ const CustomerPurchased: React.FC = () => {
         await API.put(`/products/${inventoryItem.id}/deducted`, {
           quantity: quantityToDeduct,
         });
+
+        // Send notification for deduction
+        await API.post('/notifications', {
+          type: 'product_deducted',
+          message: `Deducted ${quantityToDeduct} units of ${inventoryItem.name} for customer purchase`,
+          product_id: inventoryItem.id,
+          product_name: inventoryItem.name,
+          quantity: quantityToDeduct
+        });
       })
     );
 
@@ -223,7 +165,6 @@ const CustomerPurchased: React.FC = () => {
       products_added: products.map(p => p.productName).join(', '),
     });
 
-
     // Refresh both customer and inventory data
     const [updatedCustomer, updatedInventory] = await Promise.all([
       API.get(`/customers/${addCustomerData.id}`),
@@ -237,10 +178,51 @@ const CustomerPurchased: React.FC = () => {
     setSelectedCustomer(updatedCustomer.data);
     setNewlyAddedProducts(newProducts);
 
+    // Fetch actual prices from inventory for receipt
+    const inventoryWithPrices = updatedInventory.data;
+    const receiptProductsWithPrices = products.map((p) => {
+      const inventoryItem = inventoryWithPrices.find((item: any) => item.name === p.productName);
+      const unitPrice = inventoryItem?.unit_price || "0";
+      const total = Number(p.quantity) * parseFloat(unitPrice);
+
+      return {
+        product_name: p.productName,
+        category: p.category,
+        unit: p.unit,
+        quantity: p.quantity,
+        unit_price: unitPrice,
+        total: total,
+        purchase_date: purchaseDate,
+      };
+    });
+    const grandTotal = receiptProductsWithPrices.reduce((sum, p) => sum + p.total, 0);
+
+    // Generate receipt data with payment info if provided
+    const receiptData = {
+      customer: {
+        name: addCustomerData.name,
+        phone: addCustomerData.phone,
+        purchase_date: purchaseDate,
+      },
+      products: receiptProductsWithPrices,
+      grandTotal: grandTotal,
+      receiptNumber: `RCP-${addCustomerData.id}-${Date.now()}`,
+      amountPaid: amountPaid,
+      change: change,
+    };
+
+    // Store receipt data
+    setReceiptData(receiptData);
     setIsAddModalOpen(false);
     toast.success("Product added successfully!");
-  } catch (e: any) {
-    toast.error("Failed to update product.");
+    
+    // Show receipt after a short delay
+    setTimeout(() => {
+      setShowReceipt(true);
+    }, 500);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to update product.';
+    toast.error(message);
   }
 };
 
@@ -248,13 +230,79 @@ const CustomerPurchased: React.FC = () => {
     setViewMode("list");
     setSelectedCustomer(null);
     setNewlyAddedProducts([]);
+    setShowReceipt(false);
+    setReceiptData(null);
+  };
+
+  // Helper function to find inventory item by product
+  const findInventoryItem = (product: Product): InventoryItem | undefined => {
+    return inventoryItems.find(
+      (item) => item.name === product.product_name || item.id === product.product_id
+    );
+  };
+
+  // Helper function to calculate price
+  const calculatePrice = (quantity: string, unitPrice: string): number => {
+    const qty = parseFloat(quantity) || 0;
+    const price = parseFloat(unitPrice) || 0;
+    return qty * price;
+  };
+
+  // Generate receipt data
+  const generateReceiptData = () => {
+    if (!selectedCustomer) return null;
+
+    const receiptProducts = selectedCustomer.products.map((product: Product) => {
+      const inventoryItem = findInventoryItem(product);
+      const unitPrice = inventoryItem?.unit_price ?? "0";
+      const total = calculatePrice(product.quantity, unitPrice);
+
+      return {
+        product_name: product.product_name,
+        category: product.category,
+        unit: product.unit,
+        quantity: product.quantity,
+        unit_price: unitPrice,
+        total: total,
+        // Use product's purchase_date, fallback to customer's purchase_date
+        purchase_date: product.purchase_date || selectedCustomer.purchase_date || '',
+      };
+    });
+
+    const calculatedGrandTotal = receiptProducts.reduce((sum, p) => sum + p.total, 0);
+
+    return {
+      customer: {
+        name: selectedCustomer.name,
+        phone: selectedCustomer.phone,
+        purchase_date: selectedCustomer.purchase_date || '',
+      },
+      products: receiptProducts,
+      grandTotal: calculatedGrandTotal,
+      receiptNumber: `RCP-${selectedCustomer.id}-${Date.now()}`,
+      // No payment info for purchase history
+    };
+  };
+
+  const handlePrintReceipt = () => {
+    if (!selectedCustomer) return;
+    
+    const receiptData = generateReceiptData();
+    setReceiptData(receiptData);
+    
+    // Print complete purchase history without payment info
+    setShowReceipt(true);
+    // Increase timeout to 1500ms to ensure receipt is fully rendered
+    setTimeout(() => {
+      handlePrint();
+    }, 1500);
   };
 
   return (
     <>
       <Header />
       <Sidemenu />
-      <div className="main-content app-content p-6">
+      <div className="main-content app-content p-3 sm:p-5">
         <div className="container-fluid">
           {viewMode === "list" ? (
             <>
@@ -262,184 +310,66 @@ const CustomerPurchased: React.FC = () => {
                 title="Customer Lists"
                 links={[{ text: "Dashboard", link: "/dashboard" }]}
                 active="Customer Lists"
-                buttons={
-                  <Link
-                    to="/customerpurchased/addcustomer"
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2"
-                  >
-                    <i className="ri-user-add-line"></i> Add Customer
-                  </Link>
-                }
               />
+              
+              {/* Header Section with Gradient */}
+              <div className="bg-construction-gradient rounded-lg p-4 sm:p-6 mb-4 shadow-construction">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-white">Customer Purchase Records</h1>
+                    <p className="text-white/90 text-sm mt-1">View and manage all customer purchases</p>
+                  </div>
+                  <Link to="/customerpurchased/addcustomer">
+                    <button className="bg-white text-construction hover:bg-white/90 px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-semibold flex items-center gap-2 transition-all shadow-sm w-full sm:w-auto justify-center">
+                      <FiUserPlus className="text-lg" />
+                      Add New Customer
+                    </button>
+                  </Link>
+                </div>
+              </div>
+
+              {/* Customer Table Card */}
               <div className="grid grid-cols-12 gap-x-6">
                 <div className="xxl:col-span-12 col-span-12">
                   <div className="box overflow-hidden main-content-card">
-                    <div className="box-body p-5">
-                      <div ref={gridRef}></div>
+                    <div className="box-body p-4 sm:p-5">
+                      <div className="mb-4">
+                        <h2 className="text-lg font-bold text-construction-dark flex items-center gap-2">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                          All Customers
+                        </h2>
+                      </div>
+                      <CustomerTable
+                        customers={customers}
+                        onViewCustomer={(customer) => {
+                          setSelectedCustomer(customer);
+                          setNewlyAddedProducts([]);
+                          setViewMode("detail");
+                        }}
+                        onAddProducts={(customer) => {
+                          setAddCustomerData(customer);
+                          setIsAddModalOpen(true);
+                        }}
+                      />
                     </div>
                   </div>
                 </div>
               </div>
             </>
           ) : (
-            <>
-              <Breadcrumb
-                title="Customer Details"
-                links={[
-                  { text: "Dashboard", link: "/dashboard" },
-                  { text: "Customer Lists", link: "/customerpurchased" },
-                ]}
-                active={selectedCustomer?.name || "Customer Details"}
-              />
-              <button
-                onClick={handleBackToList}
-                className="text-blue-600 underline mb-4"
-              >
-                Back to Customer Lists
-              </button>
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                  <div>
-                    <h2 className="text-2xl font-bold mb-2">
-                      {selectedCustomer?.name}
-                    </h2>
-                    <div className="space-y-2">
-                      <p>
-                        <span className="font-semibold">Phone:</span>{" "}
-                        {selectedCustomer?.phone}
-                      </p>
-                      <p>
-                        <span className="font-semibold">Purchase Date:</span>{" "}
-                        {selectedCustomer?.purchase_date}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start justify-end">
-                    <button
-                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
-                      onClick={() => {
-                        setAddCustomerData(selectedCustomer);
-                        setIsAddModalOpen(true);
-                      }}
-                    >
-                      + Add Product
-                    </button>
-                  </div>
-                </div>
-                <h3 className="text-xl font-semibold mb-4">
-                  Purchased Products
-                </h3>
-                <div className="overflow-x-auto mb-8">
-                  <table className="w-full text-sm text-left border">
-                    <thead className="bg-gray-100">
-                      <tr>
-                        <th className="px-4 py-2 border">Product</th>
-                        <th className="px-4 py-2 border">Category</th>
-                        <th className="px-4 py-2 border">Unit</th>
-                        <th className="px-4 py-2 border">Quantity</th>
-                        <th className="px-4 py-2 border">Unit Price</th>
-                        <th className="px-4 py-2 border">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {selectedCustomer?.products?.map(
-                        (product: Product, index: number) => {
-                          const inventoryItem = inventoryItems.find(
-                            (item) =>
-                              item.name === product.product_name ||
-                              item.id === (product as any).product_id
-                          );
-                          const unitPrice =
-                            parseFloat(inventoryItem?.unit_price ?? "0") || 0;
-                          const quantity = parseFloat(product.quantity) || 0;
-                          const totalPrice = unitPrice * quantity;
-
-                          return (
-                            <tr key={index} className="border-t">
-                              <td className="px-4 py-2 border">
-                                {product.product_name}
-                              </td>
-                              <td className="px-4 py-2 border">
-                                {product.category}
-                              </td>
-                              <td className="px-4 py-2 border">
-                                {product.unit}
-                              </td>
-                              <td className="px-4 py-2 border">{quantity}</td>
-                              <td className="px-4 py-2 border">
-                                ₱{unitPrice.toFixed(2)}
-                              </td>
-                              <td className="px-4 py-2 border">
-                                ₱{totalPrice.toFixed(2)}
-                              </td>
-                            </tr>
-                          );
-                        }
-                      )}
-                      <tr className="bg-gray-50 font-semibold">
-                        <td colSpan={5} className="px-4 py-2 border text-right">
-                          Grand Total:
-                        </td>
-                        <td className="px-4 py-2 border">
-                          ₱
-                          {selectedCustomer?.products
-                            ?.reduce((sum: number, product: Product) => {
-                              const inventoryItem = inventoryItems.find(
-                                (item) =>
-                                  item.name === product.product_name ||
-                                  item.id === (product as any).product_id
-                              );
-                              const unitPrice =
-                                parseFloat(
-                                  inventoryItem?.unit_price ?? "0"
-                                ) || 0;
-                              return (
-                                sum +
-                                unitPrice *
-                                  (parseFloat(product.quantity) || 0)
-                              );
-                            }, 0)
-                            .toFixed(2)}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* New Products Table */}
-                {newlyAddedProducts.length > 0 && (
-                  <>
-                    <h3 className="text-xl font-semibold mb-4 text-green-700">
-                      Newly Added Products
-                    </h3>
-                    <div className="overflow-x-auto mb-8">
-                      <table className="w-full text-sm text-left border">
-                        <thead className="bg-green-100">
-                          <tr>
-                            <th className="px-4 py-2 border">Product</th>
-                            <th className="px-4 py-2 border">Category</th>
-                            <th className="px-4 py-2 border">Unit</th>
-                            <th className="px-4 py-2 border">Quantity</th>
-                            <th className="px-4 py-2 border">Purchase Date</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {newlyAddedProducts.map((product, idx) => (
-                            <tr key={idx} className="border-t">
-                              <td className="px-4 py-2 border">{product.product_name}</td>
-                              <td className="px-4 py-2 border">{product.category}</td>
-                              <td className="px-4 py-2 border">{product.unit}</td>
-                              <td className="px-4 py-2 border">{product.quantity}</td>
-                              <td className="px-4 py-2 border">{product.purchase_date}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </>
-                )}
-              </div>
-            </>
+            <CustomerDetailsView
+              customer={selectedCustomer!}
+              inventoryItems={inventoryItems}
+              newlyAddedProducts={newlyAddedProducts}
+              onBack={handleBackToList}
+              onPrintReceipt={handlePrintReceipt}
+              onAddProduct={() => {
+                setAddCustomerData(selectedCustomer);
+                setIsAddModalOpen(true);
+              }}
+            />
           )}
         </div>
       </div>
@@ -463,6 +393,69 @@ const CustomerPurchased: React.FC = () => {
         onClose={() => setIsAddModalOpen(false)}
         onCancel={() => setIsAddModalOpen(false)}
       />
+
+      {/* Receipt for Printing - Complete Purchase History */}
+      {showReceipt && receiptData && (
+        <div className="receipt-container" style={{ 
+          position: 'fixed', 
+          left: '0', 
+          top: '0', 
+          zIndex: 9999, 
+          background: 'white',
+          width: '100%',
+          height: '100vh',
+          overflow: 'auto'
+        }}>
+          <div style={{ padding: '20px' }}>
+            {/* Header with Actions */}
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              marginBottom: '20px', 
+              borderBottom: '2px solid #e5e7eb', 
+              paddingBottom: '15px',
+              position: 'sticky',
+              top: 0,
+              backgroundColor: 'white',
+              zIndex: 1
+            }}>
+              <h2 style={{ 
+                fontSize: '24px', 
+                fontWeight: 'bold', 
+                color: '#1f2937' 
+              }}>
+                Receipt Generated Successfully
+              </h2>
+              
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  onClick={handlePrint}
+                  className="bg-construction hover:bg-construction-dark text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-colors font-semibold"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                  </svg>
+                  Print Receipt
+                </button>
+                <button
+                  onClick={() => setShowReceipt(false)}
+                  className="bg-neutral-600 hover:bg-neutral-700 text-white px-6 py-3 rounded-lg transition-colors font-semibold"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+
+            {/* Receipt Component */}
+            <Receipt
+              ref={receiptRef}
+              {...receiptData}
+            />
+          </div>
+        </div>
+      )}
+
       <ToastContainer />
     </>
   );
