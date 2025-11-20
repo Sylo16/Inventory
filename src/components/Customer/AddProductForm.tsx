@@ -8,8 +8,8 @@ type Props = {
   onSubmit: (data: { 
     products: ProductEntry[]; 
     purchaseDate: string;
-    amountPaid?: number;
-    change?: number;
+    amountPaid: number;
+    change: number;
   }) => void;
   loading?: boolean;
   onCancel?: () => void;
@@ -154,23 +154,26 @@ const AddProductForm: React.FC<Props> = ({
       }
     }
 
-    // Validate amount paid
-    if (amountPaid.trim()) {
-      const paid = parseFloat(amountPaid);
-      if (isNaN(paid) || paid < 0) {
-        newErrors.amount_paid = "Amount paid must be a valid number.";
-        setErrors(newErrors);
-        return;
-      } else if (paid < calculatedTotal) {
-        newErrors.amount_paid = `Amount paid must be at least ₱${calculatedTotal.toFixed(2)}`;
-        setErrors(newErrors);
-        return;
-      }
+    // Validate amount paid - NOW REQUIRED
+    if (!amountPaid.trim()) {
+      newErrors.amount_paid = "Amount paid is required.";
+      setErrors(newErrors);
+      return;
+    }
+    
+    const paid = parseFloat(amountPaid);
+    if (isNaN(paid) || paid < 0) {
+      newErrors.amount_paid = "Amount paid must be a valid number.";
+      setErrors(newErrors);
+      return;
+    } else if (paid < calculatedTotal) {
+      newErrors.amount_paid = `Amount paid must be at least ₱${calculatedTotal.toFixed(2)}`;
+      setErrors(newErrors);
+      return;
     }
 
     setInternalLoading(true);
-    const paid = amountPaid ? parseFloat(amountPaid) : undefined;
-    const change = paid !== undefined ? paid - calculatedTotal : undefined;
+    const change = paid - calculatedTotal;
     
     onSubmit({ 
       products, 
@@ -361,7 +364,7 @@ const AddProductForm: React.FC<Props> = ({
 
           <div className="mb-4">
             <label className="text-sm font-semibold mb-2 block text-neutral-700">
-              Amount Paid <span className="text-neutral-500">(Optional)</span>
+              Amount Paid <span className="text-danger">*</span>
             </label>
             <input
               type="number"

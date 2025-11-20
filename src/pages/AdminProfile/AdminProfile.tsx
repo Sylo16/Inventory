@@ -100,7 +100,7 @@ const AdminProfile: React.FC = () => {
     <>
       <Header />
       <Sidemenu />
-      <div className="main-content app-content p-3 sm:p-5">
+      <div className="main-content app-content p-3 sm:p-5 animate-slideInUp">
         <div className="container-fluid">
           <Breadcrumb title="Admin Profile" links={[{ text: "Dashboard", link: "/dashboard" }]} active="Admin Profile" />
           

@@ -1,38 +1,90 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, User, Settings, ChevronDown } from 'lucide-react';
-import NotificationBell from '../components/NotificationBell';
-import LogoutModal from '../components/LogoutModal';
+import { LogOut, User, Settings, ChevronDown, Maximize, Minimize, Menu } from 'lucide-react';
+import NotificationBell from '../components/Notification/NotificationBell';
 import { useUser } from '../contexts/UserContext';
+import { useSidebar } from '../contexts/SidebarContext';
+import { showDeleteConfirm, showLoading, closeAlert } from '../utils/sweetalert';
 
 
 function Header() {
     const { user } = useUser();
-    const [dropdownOpen, setDropdownOpen] = useState(false);
+    const { toggleSidebar, isSidebarCollapsed } = useSidebar();
     const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
     const navigate = useNavigate();
 
-    const handleLogout = () => {
-        setIsLoading(true);
-        setTimeout(() => {
-            navigate('/');
-        }, 1000);
+    const handleLogout = async () => {
+        const confirmed = await showDeleteConfirm(
+            'Confirm Logout',
+            'Are you sure you want to end your session?',
+            'Yes, logout'
+        );
+
+        if (confirmed) {
+            showLoading('Logging out...', 'Please wait');
+            setTimeout(() => {
+                closeAlert();
+                navigate('/');
+            }, 1000);
+        }
+    };
+
+    // Fullscreen functionality
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }, []);
+
+    const toggleFullscreen = async () => {
+        try {
+            if (!document.fullscreenElement) {
+                await document.documentElement.requestFullscreen();
+            } else {
+                await document.exitFullscreen();
+            }
+        } catch (error) {
+            console.error('Error toggling fullscreen:', error);
+        }
     };
     return (
         <>
             <header
-                className="app-header sticky shadow-construction bg-construction-gradient"
+                className={`app-header sticky shadow-construction bg-construction-gradient ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}
                 id="header"
             >
                 <div className="main-header-container container-fluid flex justify-between items-center p-3 sm:p-4">
-                    {/* Empty space for alignment */}
-                    <div className="header-element flex items-center">
+                    {/* Left side - Sidebar toggle (hidden on mobile) */}
+                    <div className="header-element flex items-center" style={{ marginLeft: isSidebarCollapsed ? '-40px' : '0', transition: 'margin-left 0.3s ease-in-out' }}>
+                        <button
+                            onClick={toggleSidebar}
+                            className="notification-button hidden lg:flex"
+                            title="Toggle Sidebar"
+                        >
+                            <Menu className="w-6 h-6" style={{ color: 'white' }} />
+                        </button>
                     </div>
 
                     {/* Right side */}
                     <div className="flex items-center gap-2 sm:gap-4">
                         <NotificationBell />
+
+                        {/* Fullscreen Toggle Button styled same as notif bell */}
+                        <button
+                            onClick={toggleFullscreen}
+                            className="notification-button"
+                            title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+                        >
+                            {isFullscreen ? (
+                                <Minimize className="w-6 h-6" style={{ color: 'white' }} />
+                            ) : (
+                                <Maximize className="w-6 h-6" style={{ color: 'white' }} />
+                            )}
+                        </button>
 
                         {/* Profile Dropdown */}
                         <div className="relative">
@@ -86,7 +138,7 @@ function Header() {
                                         <button
                                             onClick={() => {
                                                 setProfileDropdownOpen(false);
-                                                setDropdownOpen(true);
+                                                handleLogout();
                                             }}
                                             className="flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
                                         >
@@ -100,13 +152,6 @@ function Header() {
                     </div>
                 </div>
             </header>
-            {/* Logout Modal */}
-            <LogoutModal
-                isOpen={dropdownOpen}
-                isLoading={isLoading}
-                onCancel={() => setDropdownOpen(false)}
-                onConfirm={handleLogout}
-            />
         </>
     );
 }

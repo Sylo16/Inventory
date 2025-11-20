@@ -1,389 +1,51 @@
-import { useNavigate } from "react-router-dom";
 import Breadcrumb from "../../components/breadcrumbs";
-import Header from "../../layouts/header";
-import Sidemenu from "../../layouts/sidemenu";
-import Modal from "../../components/modal";
+import PageLayout from "../../components/PageLayout";
 import ReceiptModal from "../../components/Customer/ReceiptModal";
 import Select from "react-select";
-import { useState, useEffect, useRef } from "react";
-import API from "../../api";
-import { toast, ToastContainer } from "react-toastify";
-import 'react-toastify/dist/ReactToastify.css';
-import { useReactToPrint } from 'react-to-print';
+import { useCustomerAdd } from "../../hooks/useCustomerAdd";
+import { ProductOption } from "../../services/customerService";
 
-type ProductOption = {
-  value: string;
-  label: string;
-  category: string;
-  unit: string;
-  quantity: number; 
-  isDisabled?: boolean; 
-};
-
+// Define types for react-select options
 type CategoryOption = { value: string; label: string };
 type UnitOption = { value: string; label: string };
 
-type APIProduct = {
-  id: string;
-  name: string;
-  category: string;
-  unit_of_measurement: string;
-  quantity: number;
-  unit_price?: string;
-};
-
 const CustomerAdd: React.FC = () => {
-  const navigate = useNavigate();
-  const receiptRef = useRef<HTMLDivElement>(null);
-  const [customer, setCustomer] = useState({ name: "", phone: "" });
-  const [purchaseDate, setPurchaseDate] = useState("");
-  const [products, setProducts] = useState([{ productName: "", category: "", unit: "", quantity: "" }]);
-  const [errors, setErrors] = useState({ name: "", phone: "", products: "", purchase_date: "", amount_paid: "" });
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [allProducts, setAllProducts] = useState<ProductOption[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [showReceipt, setShowReceipt] = useState(false);
-  const [receiptData, setReceiptData] = useState<any>(null);
-  const [amountPaid, setAmountPaid] = useState<string>("");
-  const [calculatedTotal, setCalculatedTotal] = useState<number>(0);
-
-  // Print handler
-  const handlePrint = useReactToPrint({
-    contentRef: receiptRef,
-    documentTitle: `Receipt-${customer.name}-${Date.now()}`,
-    onAfterPrint: () => {
-      toast.success("Receipt printed successfully!");
-      // Delay hiding and navigation to ensure print completes
-      setTimeout(() => {
-        setShowReceipt(false);
-        navigate("/customerpurchased");
-      }, 100);
-    },
-  });
-
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setIsLoading(true);
-        const response = await API.get<APIProduct[]>("/products");
-        const productData = response.data.map((prod) => ({
-          value: prod.name,
-          label: prod.name,
-          category: prod.category,
-          unit: prod.unit_of_measurement,
-          quantity: prod.quantity,
-          isDisabled: prod.quantity <= 0
-        }));
-
-        setAllProducts(productData);
-      } catch (error) {
-        console.error("Error fetching products:", error);
-        toast.error("Failed to load product data.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchProducts();
-  }, []);
-
-  // Calculate total whenever products change
-  useEffect(() => {
-    const calculateTotal = async () => {
-      let total = 0;
-      
-      for (const product of products) {
-        if (product.productName && product.quantity) {
-          const selectedProduct = allProducts.find(p => p.value === product.productName);
-          if (selectedProduct) {
-            // Fetch the product price from API
-            try {
-              const response = await API.get<APIProduct[]>("/products");
-              const productWithPrice = response.data.find((p: APIProduct) => p.name === product.productName);
-              if (productWithPrice && productWithPrice.unit_price) {
-                const unitPrice = parseFloat(productWithPrice.unit_price);
-                const quantity = parseFloat(product.quantity);
-                total += unitPrice * quantity;
-              }
-            } catch (error) {
-              console.error("Error fetching product price:", error);
-            }
-          }
-        }
-      }
-      
-      setCalculatedTotal(total);
-    };
-
-    if (products.length > 0 && allProducts.length > 0) {
-      calculateTotal();
-    }
-  }, [products, allProducts]);
-
-  const getFilteredProducts = (category: string, unit: string): ProductOption[] => {
-    return allProducts.filter(
-      (product) => (!category || product.category === category) && (!unit || product.unit === unit)
-    ).map(product => ({
-      ...product,
-      label: product.quantity <= 0 ? `${product.label} (Out of Stock)` : product.label,
-      isDisabled: product.quantity <= 0
-    }));
-  };
-
-  const getFilteredUnits = (category: string, productName: string): UnitOption[] => {
-    const filtered = allProducts.filter(
-      (product) =>
-        (!category || product.category === category) &&
-        (!productName || product.label === productName)
-    );
-    const uniqueUnits = Array.from(new Set(filtered.map((p) => p.unit)));
-    return uniqueUnits.map((unit) => ({ value: unit, label: unit }));
-  };
-
-  const getCategoryOptions = (): CategoryOption[] => {
-    const categories = Array.from(new Set(allProducts.map((p) => p.category)));
-    return categories.map((cat) => ({ value: cat, label: cat }));
-  };
-
-  const validateForm = () => {
-    let valid = true;
-    let newErrors = { name: "", phone: "", products: "", purchase_date: "", amount_paid: "" };
-
-    if (!customer.name.trim()) {
-      newErrors.name = "Customer name is required.";
-      valid = false;
-    } else if (!/^[A-Za-z\s]+$/.test(customer.name)) {
-      newErrors.name = "Name should only contain letters and spaces.";
-      valid = false;
-    }
-
-    // Phone is optional, but if provided, must be valid
-    if (customer.phone.trim() && !/^(09\d{9}|\+639\d{9})$/.test(customer.phone)) {
-      newErrors.phone = "Enter a valid Philippine phone number.";
-      valid = false;
-    }
-
-    if (!purchaseDate) {
-      newErrors.purchase_date = "Purchase date is required.";
-      valid = false;
-    }
-
-    if (!products.length || products.some((p) => !p.productName || !p.category || !p.unit || !p.quantity)) {
-      newErrors.products = "Please enter product name, category, unit, and quantity.";
-      valid = false;
-    } else if (products.some((p) => isNaN(Number(p.quantity)) || Number(p.quantity) <= 0)) {
-      newErrors.products = "Quantity must be a positive number.";
-      valid = false;
-    } else {
-      for (const product of products) {
-        const selectedProduct = allProducts.find(p => p.value === product.productName);
-        if (selectedProduct && Number(product.quantity) > selectedProduct.quantity) {
-          newErrors.products = `Quantity for ${product.productName} exceeds available stock (${selectedProduct.quantity}).`;
-          valid = false;
-          break;
-        }
-      }
-    }
-
-    // Validate amount paid
-    if (amountPaid.trim()) {
-      const paid = parseFloat(amountPaid);
-      if (isNaN(paid) || paid < 0) {
-        newErrors.amount_paid = "Amount paid must be a valid number.";
-        valid = false;
-      } else if (paid < calculatedTotal) {
-        newErrors.amount_paid = `Amount paid must be at least ₱${calculatedTotal.toFixed(2)}`;
-        valid = false;
-      }
-    }
-
-    setErrors(newErrors);
-    return valid;
-  };
-
-  const handleProductChange = (index: number, field: string, value: string) => {
-    const newProducts = [...products];
-    newProducts[index][field as keyof typeof newProducts[0]] = value;
-    setProducts(newProducts);
-  };
-
-  const addProductRow = () => {
-    setProducts([...products, { productName: "", category: "", unit: "", quantity: "" }]);
-  };
-
-  const removeProductRow = (index: number) => {
-    const newProducts = products.filter((_, i) => i !== index);
-    setProducts(newProducts);
-  };
-
-  const handleAddCustomer = () => {
-    if (validateForm()) setIsModalOpen(true);
-  };
-
-  const handleConfirm = async () => {
-    try {
-      setIsSubmitting(true);
-      
-      // First, update the inventory quantities
-      await Promise.all(
-        products.map(async (product) => {
-          const response = await API.get<APIProduct[]>("/products");
-          const inventoryItems = response.data.map((item) => ({
-            id: item.id,
-            name: item.name,
-            quantity: item.quantity,
-          }));
-          
-          const inventoryItem = inventoryItems.find(
-            (item) => item.name === product.productName
-          );
-          
-          if (!inventoryItem) {
-            throw new Error(`Product ${product.productName} not found in inventory`);
-          }
-
-          const quantityToDeduct = Number(product.quantity);
-          if (isNaN(quantityToDeduct) || quantityToDeduct <= 0) {
-            throw new Error(`Invalid quantity for ${product.productName}`);
-          }
-
-          if (inventoryItem.quantity < quantityToDeduct) {
-            throw new Error(`Insufficient stock for ${product.productName}`);
-          }
-
-          // Update inventory via API
-          await API.put(`/products/${inventoryItem.id}/deducted`, {
-            quantity: quantityToDeduct,
-          });
-
-          // Send notification for deduction
-          await API.post('/notifications', {
-            type: 'product_deducted',
-            message: `Deducted ${quantityToDeduct} units of ${inventoryItem.name} for customer purchase`,
-            product_id: inventoryItem.id,
-            product_name: inventoryItem.name,
-            quantity: quantityToDeduct
-          });
-        })
-      );
-
-      // Then create the customer record
-      const payload = {
-        name: customer.name,
-        phone: customer.phone.trim() || null, // Send null if empty, which matches nullable in backend
-        purchase_date: purchaseDate,
-        products: products.map((p) => ({
-          product_name: p.productName,
-          category: p.category,
-          unit: p.unit,
-          quantity: Number(p.quantity),
-          purchase_date: purchaseDate, // Add purchase_date to each product
-        })),
-      };
-
-      console.log("Sending payload:", payload); // Debug log
-      const response = await API.post("/customers", payload);
-
-      if (response.status === 201 || response.status === 200) {
-        toast.success("Customer added successfully and inventory updated!");
-        
-        const newCustomerId = response.data.id || response.data.customer?.id;
-
-        // Fetch actual prices from inventory
-        const productsResponse = await API.get<APIProduct[]>("/products");
-        const inventoryWithPrices = productsResponse.data;
-
-        const receiptProductsWithPrices = products.map((p) => {
-          const inventoryItem = inventoryWithPrices.find((item: any) => item.name === p.productName);
-          const unitPrice = inventoryItem?.unit_price || "0";
-          const total = Number(p.quantity) * parseFloat(unitPrice);
-
-          return {
-            product_name: p.productName,
-            category: p.category,
-            unit: p.unit,
-            quantity: p.quantity,
-            unit_price: unitPrice,
-            total: total,
-            purchase_date: purchaseDate, // Include purchase date for each product
-          };
-        });
-
-        const grandTotal = receiptProductsWithPrices.reduce((sum, p) => sum + p.total, 0);
-
-        const paid = amountPaid ? parseFloat(amountPaid) : undefined;
-        const change = paid !== undefined ? paid - grandTotal : undefined;
-
-        setReceiptData({
-          customer: {
-            name: customer.name,
-            phone: customer.phone,
-            purchase_date: purchaseDate,
-          },
-          products: receiptProductsWithPrices,
-          grandTotal: grandTotal,
-          receiptNumber: `RCP-${newCustomerId}-${Date.now()}`,
-          amountPaid: paid,
-          change: change,
-        });
-
-        // Reset form
-        setCustomer({ name: "", phone: "" });
-        setPurchaseDate("");
-        setProducts([{ productName: "", category: "", unit: "", quantity: "" }]);
-        setAmountPaid("");
-        setIsModalOpen(false);
-        
-        // Refresh product data
-        const updatedProducts = inventoryWithPrices.map((prod: any) => ({
-          value: prod.name,
-          label: prod.name,
-          category: prod.category,
-          unit: prod.unit_of_measurement,
-          quantity: prod.quantity,
-          isDisabled: prod.quantity <= 0
-        }));
-        setAllProducts(updatedProducts);
-
-        // Show receipt without auto-printing
-        setShowReceipt(true);
-      }
-    } catch (error: any) {
-      console.error("Error adding customer:", error);
-      
-      // Log detailed error information
-      if (error.response) {
-        console.error("Response data:", error.response.data);
-        console.error("Response status:", error.response.status);
-        
-        // Display specific error message from backend
-        const errorMessage = error.response.data?.message || 
-                           error.response.data?.error || 
-                           JSON.stringify(error.response.data);
-        toast.error(`Failed to add customer: ${errorMessage}`);
-      } else if (error instanceof Error) {
-        toast.error(error.message);
-      } else {
-        toast.error("Failed to add customer and update inventory");
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
-
-  };
+  const {
+    receiptRef,
+    customer,
+    setCustomer,
+    purchaseDate,
+    setPurchaseDate,
+    products,
+    errors,
+    allProducts,
+    isLoading,
+    isProcessing,
+    showReceipt,
+    setShowReceipt,
+    receiptData,
+    amountPaid,
+    setAmountPaid,
+    calculatedTotal,
+    getFilteredProducts,
+    getFilteredUnits,
+    getCategoryOptions,
+    handleProductChange,
+    addProductRow,
+    removeProductRow,
+    handleAddCustomer,
+    handlePrint,
+    navigate
+  } = useCustomerAdd();
 
   return (
-    <>
-      <Header />
-      <Sidemenu />
-      <div className="main-content app-content p-3 sm:p-5">
-        <div className="container-fluid">
-          <Breadcrumb
-            title="Add Customer"
-            links={[{ text: "Customers Lists", link: "/customerpurchased" }]}
-            active="Add New Customer"
-          />
+    <PageLayout className="p-3 sm:p-5 animate-slideInUp">
+      <div className="container-fluid">
+        <Breadcrumb
+          title="Add Customer"
+          links={[{ text: "Customers Lists", link: "/customerpurchased" }]}
+          active="Add New Customer"
+        />
           
           {/* Header Section with Gradient */}
           <div className="bg-construction-gradient rounded-lg p-4 sm:p-6 mb-4 shadow-construction">
@@ -637,7 +299,7 @@ const CustomerAdd: React.FC = () => {
 
                   <div className="mb-4">
                     <label className="text-sm font-semibold mb-2 block text-neutral-700">
-                      Amount Paid
+                      Amount Paid <span className="text-danger">*</span>
                     </label>
                     <input
                       type="number"
@@ -677,48 +339,37 @@ const CustomerAdd: React.FC = () => {
                 </button>
                 <button
                   onClick={handleAddCustomer}
-                  disabled={isSubmitting}
-                  className="flex-1 bg-construction hover:bg-construction-dark text-white rounded-lg px-6 py-3.5 text-base font-semibold transition-all shadow-construction disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="flex-1 bg-construction hover:bg-construction-dark text-white rounded-lg px-6 py-3.5 text-base font-semibold transition-all shadow-construction flex items-center justify-center gap-2"
                 >
-                  {isSubmitting ? (
-                    <>
-                      <div className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-solid border-current border-r-transparent"></div>
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      Save Customer Purchase
-                    </>
-                  )}
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Save Customer Purchase
                 </button>
               </div>
             </div>
           )}
         </div>
-      </div>
 
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => !isSubmitting && setIsModalOpen(false)}
-        title="Confirm Customer Purchase"
-        message="Are you sure you want to save this customer purchase? This will deduct the products from your inventory."
-        onConfirm={handleConfirm}
-        isConfirming={isSubmitting}
-      />
+        <ReceiptModal
+          show={showReceipt}
+          receiptData={receiptData}
+          receiptRef={receiptRef}
+          onClose={() => setShowReceipt(false)}
+          onPrint={handlePrint}
+        />
 
-      <ReceiptModal
-        show={showReceipt}
-        receiptData={receiptData}
-        receiptRef={receiptRef}
-        onClose={() => setShowReceipt(false)}
-        onPrint={handlePrint}
-      />
-
-      <ToastContainer />
-    </>
+        {/* Processing Overlay */}
+        {isProcessing && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]">
+            <div className="bg-white rounded-2xl p-8 shadow-2xl flex flex-col items-center gap-4">
+              <div className="inline-block h-16 w-16 animate-spin rounded-full border-8 border-solid border-construction border-r-transparent"></div>
+              <p className="text-xl font-semibold text-construction-dark">Processing...</p>
+              <p className="text-sm text-neutral-600">Please wait while we save your data</p>
+            </div>
+          </div>
+        )}
+    </PageLayout>
   );
 };
 

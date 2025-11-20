@@ -13,17 +13,19 @@ import Login from './pages/login';
 import AdminProfile from './pages/AdminProfile/AdminProfile';
 import Inventory from './pages/InventoryInfo/Inventory';
 import AddProduct from './pages/InventoryInfo/AddProduct';
-import Reports from './pages/DamagedInfo/Reports';
+import Reports from './pages/Reports/Reports';
 import DamagedProducts from './pages/DamagedInfo/DamageProducts';
 import CustomerPurchased from './pages/CustomerInfo/CustomerList';
 import CustomerAdd from './pages/CustomerInfo/CustomerAdd';
 import { UserProvider } from './contexts/UserContext';
+import { SidebarProvider } from './contexts/SidebarContext';
 import RecordDamagedProducts from './pages/DamagedInfo/RecordDamagedProducts';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
      <UserProvider>
+      <SidebarProvider>
     {/* <RouteChangeLoader />*/}
       <Routes>
         <Route path="/" element={<HomePage />} />
@@ -38,6 +40,7 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/customerpurchased" element={<CustomerPurchased />} />
         <Route path="/customerpurchased/addcustomer" element={<CustomerAdd />} />
       </Routes>
+      </SidebarProvider>
       </UserProvider>
     </BrowserRouter>
   </StrictMode>

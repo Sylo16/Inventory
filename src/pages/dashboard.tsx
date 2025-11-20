@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import Header from "../layouts/header";
-import Sidemenu from "../layouts/sidemenu";
+import PageLayout from "../components/PageLayout";
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { FaShoppingCart, FaBoxes, FaMoneyBillWave, FaExclamationTriangle, FaUser, FaTools } from "react-icons/fa";
 import Breadcrumb from "../components/breadcrumbs";
@@ -69,12 +68,10 @@ function Dashboard() {
   ]);
   const [recentPurchases, setRecentPurchases] = useState<CustomerPurchase[]>([]);
   const [damagedProducts, setDamagedProducts] = useState<DamagedProduct[]>([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        setLoading(true);
 
         // Fetch all needed data in parallel
         const [dashboardResponse, customersResponse, inventoryResponse, damagedProductsResponse] = await Promise.all([
@@ -190,28 +187,15 @@ function Dashboard() {
         setDamagedProducts(damagedProductsData);
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
-      } finally {
-        setLoading(false);
       }
     };
 
     fetchDashboardData();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
-
   return (
-    <>
-      <Header />
-      <Sidemenu />
-      <div className="main-content app-content">
-        <div className="container-fluid">
+    <PageLayout className="animate-slideInUp p-3 sm:p-5">
+      <div className="container-fluid">
           <Breadcrumb title="Dashboard" />
 
           {/* Stats Cards - Full Width Top Section */}
@@ -262,8 +246,6 @@ function Dashboard() {
                 </div>
               ))}
             </div>
-          </div>
-
 
           {/* Stock Pie Chart & Customer Bar Chart - Bottom Section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
@@ -412,14 +394,14 @@ function Dashboard() {
               </div>
             </div>
           </div>
-        </div>  
 
-      <div className="footer bg-white shadow-lg rounded-2xl p-4 mt-10">
-        <p className="text-center text-gray-600">
-          © 2025 Sales and Inventory for JARED Construction Supplies and Trading. All rights reserved.
-        </p>
-      </div>
-    </>
+          <div className="footer bg-white shadow-lg rounded-2xl p-4 mt-10">
+            <p className="text-center text-gray-600">
+              © 2025 Sales and Inventory for JARED Construction Supplies and Trading. All rights reserved.
+            </p>
+          </div>
+        </div>
+    </PageLayout>
   );
 }
 

@@ -109,7 +109,9 @@ const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
 
         {/* Products Table */}
         <div className="mb-6">
-          <h3 className="font-bold text-lg mb-3">ITEMS PURCHASED</h3>
+          <h3 className="font-bold text-lg mb-3">
+            {isPurchaseHistory ? 'PURCHASE HISTORY' : 'ITEMS PURCHASED'}
+          </h3>
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b-2 border-gray-800">
@@ -117,8 +119,12 @@ const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
                 <th className="text-center py-2">Purchase Date</th>
                 <th className="text-center py-2">Qty</th>
                 <th className="text-center py-2">Unit</th>
-                <th className="text-right py-2">Unit Price</th>
-                <th className="text-right py-2">Amount</th>
+                {!isPurchaseHistory && (
+                  <>
+                    <th className="text-right py-2">Unit Price</th>
+                    <th className="text-right py-2">Amount</th>
+                  </>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -133,47 +139,59 @@ const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
                   </td>
                   <td className="text-center py-2">{product.quantity}</td>
                   <td className="text-center py-2">{product.unit}</td>
-                  <td className="text-right py-2">
-                    ₱{parseFloat(product.unit_price).toFixed(2)}
-                  </td>
-                  <td className="text-right py-2">
-                    ₱{product.total.toFixed(2)}
-                  </td>
+                  {!isPurchaseHistory && (
+                    <>
+                      <td className="text-right py-2">
+                        ₱{parseFloat(product.unit_price).toFixed(2)}
+                      </td>
+                      <td className="text-right py-2">
+                        ₱{product.total.toFixed(2)}
+                      </td>
+                    </>
+                  )}
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
 
-        {/* Totals */}
-        <div className="border-t-2 border-gray-800 pt-4">
-          <div className="flex justify-between text-xl font-bold pt-2">
-            <span>TOTAL:</span>
-            <span>₱{grandTotal.toFixed(2)}</span>
+        {/* Totals - Only show for receipts, not for purchase history */}
+        {!isPurchaseHistory && (
+          <div className="border-t-2 border-gray-800 pt-4">
+            <div className="flex justify-between text-xl font-bold pt-2">
+              <span>TOTAL:</span>
+              <span>₱{grandTotal.toFixed(2)}</span>
+            </div>
+            
+            {/* Payment Information */}
+            {amountPaid !== undefined && (
+              <>
+                <div className="flex justify-between mt-4 pt-4 border-t border-gray-400 text-lg">
+                  <span className="font-semibold">Amount Paid:</span>
+                  <span>₱{amountPaid.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between mt-2 text-lg font-bold text-green-600">
+                  <span>Change:</span>
+                  <span>₱{(change || 0).toFixed(2)}</span>
+                </div>
+              </>
+            )}
           </div>
-          
-          {/* Payment Information */}
-          {amountPaid !== undefined && (
-            <>
-              <div className="flex justify-between mt-4 pt-4 border-t border-gray-400 text-lg">
-                <span className="font-semibold">Amount Paid:</span>
-                <span>₱{amountPaid.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between mt-2 text-lg font-bold text-green-600">
-                <span>Change:</span>
-                <span>₱{(change || 0).toFixed(2)}</span>
-              </div>
-            </>
-          )}
-        </div>
+        )}
 
         {/* Footer */}
         <div className="mt-8 pt-6 border-t-2 border-gray-300 text-center">
           <p className="text-sm text-gray-600 mb-2">
-            Thank you for your business!
+            {isPurchaseHistory 
+              ? 'This is a complete record of all purchases made by this customer.'
+              : 'Thank you for your business!'
+            }
           </p>
           <p className="text-xs text-gray-500">
-            This is an official receipt. Please keep for your records.
+            {isPurchaseHistory
+              ? 'For detailed receipt with pricing, please refer to individual transaction receipts.'
+              : 'This is an official receipt. Please keep for your records.'
+            }
           </p>
           <p className="text-xs text-gray-500 mt-4">
             For inquiries, please contact us at the details above.

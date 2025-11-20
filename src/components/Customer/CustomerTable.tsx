@@ -95,9 +95,9 @@ const CustomerTable: React.FC<CustomerTableProps> = ({
         data: customers.map((customer, index) => [
           customer.id || (index + 1).toString(),
           customer.name,
-          customer.phone,
+          customer.phone || '',
           customer.purchase_date?.split('T')[0] || '',
-          customer.products,
+          Array.isArray(customer.products) ? customer.products : [],
         ]),
       });
 

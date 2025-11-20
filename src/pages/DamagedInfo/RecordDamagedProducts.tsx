@@ -1,289 +1,40 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import React from "react";
 import Breadcrumb from "../../components/breadcrumbs";
-import Header from "../../layouts/header";
-import Sidemenu from "../../layouts/sidemenu";
-import Modal from "../../components/modal";
-import API from "../../api";
+import PageLayout from "../../components/PageLayout";
 import Select from 'react-select';
-import { toast, ToastContainer } from "react-toastify";
+import { ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
-
-interface DamagedItem {
-  productId: string;
-  productName: string;
-  quantity: number | string;
-  reason: string;
-  unit_of_measurement: string;
-  maxQuantity?: number;
-}
-
-interface Customer {
-  id: string;
-  name: string;
-  phone: string;
-  purchase_date?: string;
-  products?: {
-    product_name: string;
-    unit: string;
-    quantity?: number;
-    purchase_date?: string;
-  }[];
-  purchased_products?: {
-    product_name: string;
-    unit: string;
-    quantity?: number;
-    purchase_date?: string;
-  }[];
-  customer_products?: {
-    product_name: string;
-    unit: string;
-    quantity?: number;
-    purchase_date?: string;
-  }[];
-}
-
-interface ProductOption {
-  value: string;
-  label: string;
-  unit: string;
-  maxQuantity?: number;
-}
+import { useRecordDamaged } from "../../hooks/useRecordDamaged";
 
 const RecordDamagedProducts: React.FC = () => {
-  const navigate = useNavigate();
-  const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
-  
-  // Form state
-  const [selectedCustomer, setSelectedCustomer] = useState<{value: string, label: string} | null>(null);
-  const [damageDate, setDamageDate] = useState("");
-  const [damagedItems, setDamagedItems] = useState<DamagedItem[]>([
-    { productId: "", productName: "", quantity: "", reason: "", unit_of_measurement: "" }
-  ]);
-  const [customerProductOptions, setCustomerProductOptions] = useState<ProductOption[]>([]);
-
-  const today = new Date().toISOString().split("T")[0];
-
-  useEffect(() => {
-    fetchCustomers();
-  }, []);
-
-  const fetchCustomers = async () => {
-    setIsLoadingCustomers(true);
-    try {
-      const response = await API.get("/customers");
-      const data = response.data as Customer[] | undefined;
-      setCustomers(data || []);
-    } catch (error) {
-      console.error("Error fetching customers:", error);
-      toast.error("Failed to load customer data");
-    } finally {
-      setIsLoadingCustomers(false);
-    }
-  };
-
-  const loadCustomerProducts = useCallback((customerId: string) => {
-    const customer = customers.find(c => String(c.id) === String(customerId));
-    
-    if (!customer) {
-      setCustomerProductOptions([]);
-      return;
-    }
-  
-    // Safely check all possible product properties
-    const products = 
-      (customer.products || 
-       customer.purchased_products || 
-       customer.customer_products || 
-       []) as Array<{
-        product_name: string;
-        unit: string;
-        quantity?: number;
-        purchase_date?: string;
-      }>;
-  
-    if (products.length > 0) {
-      const now = new Date();
-      const threeDaysAgo = new Date(now.getTime() - (3 * 24 * 60 * 60 * 1000));
-      
-      // Filter products purchased within the last 3 days
-      const validProducts = products.filter(product => {
-        if (!product.purchase_date) {
-          // If no individual product date, check customer's main purchase date
-          if (!customer.purchase_date) return false;
-          const purchaseDate = new Date(customer.purchase_date);
-          return purchaseDate >= threeDaysAgo;
-        }
-        const productPurchaseDate = new Date(product.purchase_date);
-        return productPurchaseDate >= threeDaysAgo;
-      });
-
-      if (validProducts.length === 0) {
-        setCustomerProductOptions([]);
-        toast.warning("No products available for damage report. Products must be purchased within the last 3 days.");
-        return;
-      }
-
-      const options = validProducts.map(product => ({
-        value: product.product_name,
-        label: product.product_name,
-        unit: product.unit,
-        maxQuantity: product.quantity
-      }));
-      setCustomerProductOptions(options);
-    } else {
-      setCustomerProductOptions([]);
-      toast.info("This customer has no purchased products");
-    }
-  }, [customers]);
-
-  useEffect(() => {
-    if (selectedCustomer) {
-      loadCustomerProducts(selectedCustomer.value);
-    } else {
-      setCustomerProductOptions([]);
-    }
-  }, [selectedCustomer, loadCustomerProducts]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (validateForm()) {
-      setIsConfirmationModalOpen(true);
-    } else {
-      toast.error("Please fill all fields correctly.");
-    }
-  };
-
-  const validateForm = () => {
-    if (!selectedCustomer || !damageDate || damagedItems.length === 0) {
-      return false;
-    }
-    
-    for (const item of damagedItems) {
-      const quantity = typeof item.quantity === 'string' ? 
-        (item.quantity === '' ? 0 : parseInt(item.quantity)) : 
-        item.quantity;
-      
-      if (!item.productId || quantity <= 0 || !item.reason) {
-        return false;
-      }
-      if (item.maxQuantity && quantity > item.maxQuantity) {
-        toast.error(`Quantity cannot exceed purchased amount (${item.maxQuantity}) for ${item.productName}`);
-        return false;
-      }
-    }
-    
-    return true;
-  };
-
-  const confirmDamage = async () => {
-    if (isLoading) return;
-    setIsLoading(true);
-
-    try {
-      const promises = damagedItems.map(item => {
-        const quantity = typeof item.quantity === 'string' ? 
-          (item.quantity === '' ? 0 : parseInt(item.quantity)) : 
-          item.quantity;
-
-        const productData = {
-          customer_name: selectedCustomer?.label || "",
-          product_name: item.productName,
-          quantity: quantity,
-          reason: item.reason,
-          date: damageDate,
-          unit_of_measurement: item.unit_of_measurement,
-        };
-        
-        return API.post("/damaged-products", productData);
-      });
-
-      await Promise.all(promises);
-      
-      setIsConfirmationModalOpen(false);
-      toast.success("Damaged products recorded successfully!");
-      
-      // Navigate back after short delay to show toast
-      setTimeout(() => {
-        navigate("/damageproducts");
-      }, 1500);
-    } catch (error) {
-      console.error("Error recording damaged products:", error);
-      toast.error("Error recording the damaged products. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const cancelDamage = () => {
-    setIsConfirmationModalOpen(false);
-  };
-
-  const handleProductChange = (index: number, option: ProductOption | null) => {
-    const newItems = [...damagedItems];
-    newItems[index].productId = option?.value || "";
-    newItems[index].productName = option?.label || "";
-    newItems[index].unit_of_measurement = option?.unit || "";
-    newItems[index].maxQuantity = option?.maxQuantity;
-    
-    if (option?.maxQuantity && Number(newItems[index].quantity) > option.maxQuantity) {
-      newItems[index].quantity = option.maxQuantity;
-    }
-    
-    setDamagedItems(newItems);
-  };
-
-  const handleItemChange = (index: number, field: keyof DamagedItem, value: string | number) => {
-    const newItems = [...damagedItems];
-    
-    if (field === 'quantity') {
-      // Handle empty input (when user clears the field)
-      if (value === '' || isNaN(Number(value))) {
-        newItems[index].quantity = '';
-      } else {
-        const numValue = parseInt(String(value), 10);
-        const maxQty = newItems[index].maxQuantity || Infinity;
-        newItems[index].quantity = Math.min(numValue, maxQty);
-      }
-    } else {
-      newItems[index] = { ...newItems[index], [field]: value };
-    }
-    
-    setDamagedItems(newItems);
-  };
-
-  const addNewRow = () => {
-    setDamagedItems([...damagedItems, { 
-      productId: "", 
-      productName: "", 
-      quantity: 1, 
-      reason: "", 
-      unit_of_measurement: "" 
-    }]);
-  };
-
-  const removeRow = (index: number) => {
-    if (damagedItems.length <= 1) return;
-    const newItems = [...damagedItems];
-    newItems.splice(index, 1);
-    setDamagedItems(newItems);
-  };
+  const {
+    customers,
+    isLoadingCustomers,
+    isLoading,
+    selectedCustomer,
+    damageDate,
+    damagedItems,
+    customerProductOptions,
+    today,
+    handleCustomerChange,
+    handleDateChange,
+    handleProductChange,
+    handleItemChange,
+    addNewRow,
+    removeRow,
+    handleSubmit,
+    navigate
+  } = useRecordDamaged();
 
   return (
-    <>
-      <Header />
-      <Sidemenu />
-      
-      <div className="main-content app-content p-3 sm:p-5">
-        <div className="container-fluid">
-          <Breadcrumb 
-            title="Record Damaged Products" 
-            links={[{ text: "Damaged Products", link: "/damageproducts" }]} 
-            active="Record Damage"
-          />
+    <PageLayout className="p-3 sm:p-5 animate-slideInUp">
+      <ToastContainer />
+      <div className="container-fluid">
+        <Breadcrumb 
+          title="Record Damaged Products" 
+          links={[{ text: "Damaged Products", link: "/damageproducts" }]} 
+          active="Record Damage"
+        />
           
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">
             {/* Info Banner */}
@@ -312,7 +63,7 @@ const RecordDamagedProducts: React.FC = () => {
                     <Select
                       options={customers.map(customer => ({ value: customer.id, label: customer.name }))}
                       value={selectedCustomer}
-                      onChange={setSelectedCustomer}
+                      onChange={handleCustomerChange}
                       placeholder={isLoadingCustomers ? "Loading..." : "Choose customer"}
                       isClearable
                       className="react-select-container"
@@ -336,7 +87,7 @@ const RecordDamagedProducts: React.FC = () => {
                       type="date"
                       value={damageDate}
                       max={today}
-                      onChange={(e) => setDamageDate(e.target.value)}
+                      onChange={(e) => handleDateChange(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                       required
                     />
@@ -502,22 +253,7 @@ const RecordDamagedProducts: React.FC = () => {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Confirmation Modal */}
-      {isConfirmationModalOpen && (
-        <Modal
-          isOpen={isConfirmationModalOpen}
-          onClose={cancelDamage}
-          onConfirm={confirmDamage}
-          isLoading={isLoading}
-          title="Confirm Damaged Products"
-          message="Are you sure you want to record these damaged products?"
-        />
-      )}
-      
-      <ToastContainer />
-    </>
+    </PageLayout>
   );
 };
 

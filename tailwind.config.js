@@ -7,34 +7,55 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Primary Brand Colors (Red - from background)
-        primaryStart: "#FF0000",     // Bright Red (brand primary)
-        primaryMid: "#E60000",       // Deep Red
-        primaryEnd: "#CC0000",       // Dark Red
-        
-        // Secondary Brand Colors (Orange - from logo text)
+        // Primary Brand Colors (Red)
+        primaryStart: "#FF0000",
+        primaryMid: "#E60000",
+        primaryEnd: "#CC0000",
+
+        // Secondary Brand Colors (Orange)
         secondary: {
-          light: "#FFB347",          // Light Orange
-          DEFAULT: "#FF8C42",        // Orange (logo text)
-          dark: "#FF6B35",           // Deep Orange
+          light: "#FFB347",
+          DEFAULT: "#FF8C42",
+          dark: "#FF6B35",
         },
-        
-        // Accent Colors (Yellow/Gold - from character & text)
+
+        // Accent Colors (Yellow/Gold)
         accent: {
-          light: "#FFD700",          // Gold
-          DEFAULT: "#FFC107",        // Amber/Yellow
-          dark: "#FF9800",           // Dark Amber
+          light: "#FFD700",
+          DEFAULT: "#FFC107",
+          dark: "#FF9800",
         },
-        
-        // Construction Blue (from overalls & helmet)
+
+        // Construction Blue (Branded Blues)
         construction: {
-          light: "#5DADE2",          // Light Blue
-          DEFAULT: "#3498DB",        // Blue (overalls)
-          dark: "#2874A6",           // Dark Blue (helmet stripe)
-          navy: "#1B4F72",           // Navy Blue
+          light: "#5DADE2",
+          DEFAULT: "#3498DB",
+          dark: "#2874A6",
+          navy: "#1B4F72",
         },
-        
-        // Neutral Colors for UI
+
+        // ⭐ NEW Neutral Colors (Slate)
+        slate: {
+          light: "#334155",      // slate-700
+          DEFAULT: "#1E293B",    // slate-800
+          dark: "#0F172A",       // slate-900
+        },
+
+        // ⭐ NEW Construction Sand/Cement Tones
+        sand: {
+          light: "#ECE2D0",
+          DEFAULT: "#D6C5A3",
+          dark: "#B8A980",
+        },
+
+        // ⭐ NEW Teal (for accents & info)
+        teal: {
+          light: "#2DD4BF",
+          DEFAULT: "#14B8A6",
+          dark: "#0D9488",
+        },
+
+        // Neutral Grayscale
         neutral: {
           50: "#FAFAFA",
           100: "#F5F5F5",
@@ -47,34 +68,34 @@ export default {
           800: "#262626",
           900: "#171717",
         },
-        
-        // Status Colors (Enhanced for clarity)
+
+        // Status Colors
         success: {
-          light: "#86EFAC",          // Light Green
-          DEFAULT: "#22C55E",        // Green
-          dark: "#16A34A",           // Dark Green
+          light: "#86EFAC",
+          DEFAULT: "#22C55E",
+          dark: "#16A34A",
         },
         warning: {
-          light: "#FDE047",          // Light Yellow
-          DEFAULT: "#FACC15",        // Yellow
-          dark: "#EAB308",           // Dark Yellow
+          light: "#FDE047",
+          DEFAULT: "#FACC15",
+          dark: "#EAB308",
         },
         danger: {
-          light: "#FCA5A5",          // Light Red
-          DEFAULT: "#EF4444",        // Red
-          dark: "#DC2626",           // Dark Red
+          light: "#FCA5A5",
+          DEFAULT: "#EF4444",
+          dark: "#DC2626",
         },
         info: {
-          light: "#93C5FD",          // Light Blue
-          DEFAULT: "#3B82F6",        // Blue
-          dark: "#2563EB",           // Dark Blue
+          light: "#93C5FD",
+          DEFAULT: "#3B82F6",
+          dark: "#2563EB",
         },
-        
+
         // Background Colors
         background: {
-          primary: "#FFFFFF",        // White
-          secondary: "#F8F9FA",      // Light Gray
-          tertiary: "#F3F4F6",       // Lighter Gray
+          primary: "#FFFFFF",
+          secondary: "#F8F9FA",
+          tertiary: "#F3F4F6",
         },
       },
     },

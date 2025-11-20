@@ -72,7 +72,7 @@ const CustomerDetailsView: React.FC<CustomerDetailsViewProps> = ({
       {/* Back Button */}
       <button
         onClick={onBack}
-        className="bg-neutral-500 hover:bg-neutral-600 text-white px-4 py-2 rounded-lg mb-4 flex items-center gap-2 transition-colors"
+        className="bg-construction hover:bg-construction-dark text-white px-4 py-2 rounded-lg mb-4 flex items-center gap-2 transition-colors"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -83,57 +83,66 @@ const CustomerDetailsView: React.FC<CustomerDetailsViewProps> = ({
       {/* Customer Info Card */}
       <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-4">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          {/* Customer Information */}
-          <div className="bg-construction-light/10 rounded-lg p-4 sm:p-6 border-l-4 border-construction">
-            <h2 className="text-xl sm:text-2xl font-bold mb-4 text-construction-dark flex items-center gap-2">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              {customer?.name}
-            </h2>
-            <div className="space-y-3">
-              <div className="flex items-start gap-3">
-                <svg className="w-5 h-5 text-construction mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                </svg>
-                <div>
-                  <p className="text-sm text-neutral-600 font-semibold">Phone Number</p>
-                  <p className="text-base text-neutral-800">{customer?.phone || "N/A"}</p>
+          {/* Redesigned Customer Information Card */}
+          <div className="bg-gradient-to-br from-construction-light/30 via-white to-construction-light/10 rounded-xl p-6 border border-construction/30 shadow-sm flex flex-col justify-between h-full">
+            <div>
+              <div className="flex items-center justify-between gap-4 mb-4">
+                <div className="flex items-center gap-4">
+                  <div className="bg-construction p-3 rounded-full shadow-md">
+                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-construction-dark">{customer?.name}</h2>
+                    <p className="text-sm text-neutral-500 font-medium">Customer ID: {customer?.id}</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    className="bg-white border border-construction/40 text-construction-dark px-3 py-2 rounded-lg font-semibold flex items-center gap-1 text-base shadow-sm hover:bg-construction-light/20 hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-construction"
+                    onClick={onPrintReceipt}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                    </svg>
+                    Print
+                  </button>
+                  <button
+                    className="bg-white border border-success/40 text-success-dark px-3 py-2 rounded-lg font-semibold flex items-center gap-1 text-base shadow-sm hover:bg-success-light/20 hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-success"
+                    onClick={onAddProduct}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    Add
+                  </button>
                 </div>
               </div>
-              <div className="flex items-start gap-3">
-                <svg className="w-5 h-5 text-construction mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <div>
-                  <p className="text-sm text-neutral-600 font-semibold">First Purchase Date</p>
-                  <p className="text-base text-neutral-800">{customer?.purchase_date || "N/A"}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex items-center gap-3 bg-white/60 rounded-lg p-3 border border-construction/10">
+                  <svg className="w-6 h-6 text-construction" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                  <div>
+                    <p className="text-xs text-neutral-600 font-semibold">Phone Number</p>
+                    <p className="text-base text-neutral-800">{customer?.phone || "N/A"}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 bg-white/60 rounded-lg p-3 border border-construction/10">
+                  <svg className="w-6 h-6 text-construction" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <div>
+                    <p className="text-xs text-neutral-600 font-semibold">First Purchase Date</p>
+                    <p className="text-base text-neutral-800">{customer?.purchase_date || "N/A"}</p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex flex-col justify-center gap-3">
-            <button
-              className="bg-construction hover:bg-construction-dark text-white px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all shadow-construction"
-              onClick={onPrintReceipt}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-              </svg>
-              Print Purchase History
-            </button>
-            <button
-              className="bg-success hover:bg-success-dark text-white px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all shadow-sm"
-              onClick={onAddProduct}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              Add Product
-            </button>
-          </div>
+          {/* Redesigned Action Buttons */}
         </div>
 
         {/* Products Section */}
