@@ -7,6 +7,7 @@ import {
   Phone, Calendar, MapPin, Globe 
 } from 'lucide-react';
 import { useUser } from '../../contexts/UserContext';
+import ScrollToTopButton from "../../components/ScrollToTopButton";
 
 type Admin = {
   id: number;
@@ -224,7 +225,7 @@ const AdminProfile: React.FC = () => {
                           
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                             <div className="md:col-span-2 sm:md:col-span-1">
-                              <label className="block text-sm font-semibold text-construction-dark mb-2 flex items-center gap-2">
+                              <label className="text-sm font-semibold text-construction-dark mb-2 flex items-center gap-2">
                                 <User size={16} />
                                 Full Name <span className="text-danger">*</span>
                               </label>
@@ -239,7 +240,7 @@ const AdminProfile: React.FC = () => {
                               />
                             </div>
                             <div className="md:col-span-2 sm:md:col-span-1">
-                              <label className="block text-sm font-semibold text-construction-dark mb-2 flex items-center gap-2">
+                              <label className="text-sm font-semibold text-construction-dark mb-2 flex items-center gap-2">
                                 <Mail size={16} />
                                 Email Address <span className="text-danger">*</span>
                               </label>
@@ -254,7 +255,7 @@ const AdminProfile: React.FC = () => {
                               />
                             </div>
                             <div>
-                              <label className="block text-sm font-semibold text-construction-dark mb-2 flex items-center gap-2">
+                              <label className="text-sm font-semibold text-construction-dark mb-2 flex items-center gap-2">
                                 <Phone size={16} />
                                 Phone Number
                               </label>
@@ -268,7 +269,7 @@ const AdminProfile: React.FC = () => {
                               />
                             </div>
                             <div>
-                              <label className="block text-sm font-semibold text-construction-dark mb-2 flex items-center gap-2">
+                              <label className="text-sm font-semibold text-construction-dark mb-2 flex items-center gap-2">
                                 <MapPin size={16} />
                                 Location
                               </label>
@@ -282,7 +283,7 @@ const AdminProfile: React.FC = () => {
                               />
                             </div>
                             <div className="md:col-span-2">
-                              <label className="block text-sm font-semibold text-construction-dark mb-2 flex items-center gap-2">
+                              <label className="text-sm font-semibold text-construction-dark mb-2 flex items-center gap-2">
                                 <Globe size={16} />
                                 Website
                               </label>
@@ -296,7 +297,7 @@ const AdminProfile: React.FC = () => {
                               />
                             </div>
                             <div className="md:col-span-2">
-                              <label className="block text-sm font-semibold text-construction-dark mb-2 flex items-center gap-2">
+                              <label className="text-sm font-semibold text-construction-dark mb-2 flex items-center gap-2">
                                 <User size={16} />
                                 Bio
                               </label>
@@ -447,6 +448,7 @@ const AdminProfile: React.FC = () => {
           </div>
         </div>
       </div>
+      <ScrollToTopButton />
     </>
   );
 };

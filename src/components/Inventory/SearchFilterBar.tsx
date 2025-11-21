@@ -1,5 +1,6 @@
 import React from 'react';
 import { Archive, ArchiveRestore, ArrowUpDown, Search } from "lucide-react";
+import Select from 'react-select';
 
 interface SearchFilterBarProps {
   searchTerm: string;
@@ -26,6 +27,65 @@ const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
   onSortToggle,
   onShowHiddenToggle,
 }) => {
+  // Category options for react-select
+  const categoryOptions = categories.map(category => ({
+    value: category,
+    label: category === "All" ? "All Categories" : category
+  }));
+
+  // Custom styles for react-select
+  const selectStyles = {
+    control: (base: any, state: any) => ({
+      ...base,
+      minWidth: '180px',
+      borderWidth: selectedCategory === "All" ? '2px' : '2px',
+      borderColor: selectedCategory === "All" ? '#d1d5db' : '#ff6b35',
+      borderRadius: '0.5rem',
+      padding: '2px 4px',
+      backgroundColor: selectedCategory === "All" ? 'white' : '#ff6b35',
+      color: selectedCategory === "All" ? '#374151' : 'white',
+      boxShadow: state.isFocused ? '0 0 0 2px rgba(255, 107, 53, 0.2)' : 'none',
+      '&:hover': {
+        backgroundColor: selectedCategory === "All" ? '#f9fafb' : '#e85a2a'
+      },
+      cursor: 'pointer',
+      transition: 'all 0.2s'
+    }),
+    singleValue: (base: any) => ({
+      ...base,
+      color: selectedCategory === "All" ? '#374151' : 'white',
+      fontWeight: 500,
+      fontSize: '0.875rem'
+    }),
+    option: (base: any, state: any) => ({
+      ...base,
+      backgroundColor: state.isSelected ? '#ff6b35' : state.isFocused ? '#fee2e2' : 'white',
+      color: state.isSelected ? 'white' : '#1f2937',
+      cursor: 'pointer',
+      fontWeight: 500,
+      fontSize: '0.875rem',
+      '&:active': {
+        backgroundColor: '#ff6b35'
+      }
+    }),
+    menu: (base: any) => ({
+      ...base,
+      borderRadius: '0.5rem',
+      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+      zIndex: 9999
+    }),
+    dropdownIndicator: (base: any) => ({
+      ...base,
+      color: selectedCategory === "All" ? '#6b7280' : 'white',
+      '&:hover': {
+        color: selectedCategory === "All" ? '#374151' : 'white'
+      }
+    }),
+    indicatorSeparator: () => ({
+      display: 'none'
+    })
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-sm p-3 sm:p-4 mb-4">
       <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
@@ -40,36 +100,24 @@ const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
           />
         </div>
         
-        {/* Category Dropdown */}
-        <select
-          value={selectedCategory}
-          onChange={(e) => onCategoryChange(e.target.value)}
-          className={`w-full sm:w-auto pl-3 pr-8 py-2.5 border-2 rounded-lg font-medium transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-construction text-sm ${
-            selectedCategory === "All"
-              ? 'border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50'
-              : 'border-construction bg-construction text-white hover:bg-construction-dark'
-          }`}
-          style={{ 
-            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
-            backgroundRepeat: 'no-repeat',
-            backgroundPosition: 'right 0.5rem center',
-            backgroundSize: '1.25rem',
-            appearance: 'none'
-          }}
-        >
-          {categories.map((category) => (
-            <option key={category} value={category}>
-              {category === "All" ? "All Categories" : category}
-            </option>
-          ))}
-        </select>
+        {/* Category Dropdown with react-select */}
+        <div className="w-full sm:w-auto">
+          <Select
+            value={categoryOptions.find(opt => opt.value === selectedCategory)}
+            onChange={(option) => onCategoryChange(option?.value || "All")}
+            options={categoryOptions}
+            styles={selectStyles}
+            isSearchable={false}
+            placeholder="Select category..."
+          />
+        </div>
 
         <div className="flex gap-2 flex-wrap sm:flex-nowrap">
           <button
             onClick={onSortToggle}
             className={`flex-1 sm:flex-none px-3 py-2 border-2 rounded-lg font-medium whitespace-nowrap transition-all justify-center flex items-center gap-2 text-sm ${
               sortBy === "name"
-                ? 'border-teal bg-teal text-white hover:bg-teal/90 shadow-md'
+                ? 'bg-construction-dark text-white hover:bg-construction-navy'
                 : 'border-secondary bg-secondary text-white hover:bg-secondary-dark shadow-md'
             }`}
           >

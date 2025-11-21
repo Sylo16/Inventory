@@ -3,11 +3,9 @@ import { FaTools } from 'react-icons/fa';
 import { Link } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
-
 // Layouts
 import Breadcrumb from "../../components/breadcrumbs";
 import PageLayout from "../../components/PageLayout";
-
 // Components
 import EditPriceModal from "../../components/Inventory/EditPriceModal";
 import ProductTableRow from "../../components/Inventory/ProductTableRow";
@@ -16,7 +14,7 @@ import StatsCards from "../../components/Inventory/StatsCards";
 import SearchFilterBar from "../../components/Inventory/SearchFilterBar";
 import ImageModal from "../../components/Inventory/ImageModal";
 import Pagination from "../../components/Inventory/Pagination";
-
+import ScrollToTopButton from "../../components/ScrollToTopButton";
 // Custom Hook
 import { useInventory } from "../../hooks/useInventory";
 
@@ -90,7 +88,7 @@ const Inventory: React.FC = () => {
               </div>
               <Link 
                 to="/inventory/addproduct" 
-                className="bg-blue-600 text-white hover:bg-white/90 px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-semibold flex items-center gap-2 transition-all shadow-sm w-full sm:w-auto justify-center"
+                className="bg-blue-600 text-white hover:bg-blue-700 px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-semibold flex items-center gap-2 transition-all shadow-sm w-full sm:w-auto justify-center"
               >
                 <FaTools size={18} />
                 <span>Add Product</span>
@@ -280,6 +278,9 @@ const Inventory: React.FC = () => {
           productName={selectedImage?.name || ''}
           onClose={handleCloseImageModal}
         />
+
+        {/* Scroll to Top Button */}
+        <ScrollToTopButton />
     </PageLayout>
   );
 };

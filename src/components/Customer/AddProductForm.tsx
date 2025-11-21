@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Select, { SingleValue } from "react-select";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import { InventoryItem, ProductEntry } from "../types";
 import API from "../../api";
 
@@ -26,7 +28,7 @@ const AddProductForm: React.FC<Props> = ({
   const [products, setProducts] = useState<ProductEntry[]>([
     { productName: "", category: "", unit: "", quantity: "" }
   ]);
-  const [purchaseDate, setPurchaseDate] = useState<string>("");
+  const [purchaseDate, setPurchaseDate] = useState<Date | null>(null);
   const [internalLoading, setInternalLoading] = useState(false);
   const [amountPaid, setAmountPaid] = useState<string>("");
   const [calculatedTotal, setCalculatedTotal] = useState<number>(0);
@@ -175,9 +177,14 @@ const AddProductForm: React.FC<Props> = ({
     setInternalLoading(true);
     const change = paid - calculatedTotal;
     
+    // Format date to YYYY-MM-DD string
+    const formattedDate = purchaseDate 
+      ? `${purchaseDate.getFullYear()}-${String(purchaseDate.getMonth() + 1).padStart(2, '0')}-${String(purchaseDate.getDate()).padStart(2, '0')}`
+      : '';
+    
     onSubmit({ 
       products, 
-      purchaseDate,
+      purchaseDate: formattedDate,
       amountPaid: paid,
       change: change
     });
@@ -192,14 +199,26 @@ const AddProductForm: React.FC<Props> = ({
         <label className="block text-sm font-semibold mb-2 text-neutral-700">
           Purchase Date <span className="text-danger">*</span>
         </label>
-        <input
-          type="date"
-          value={purchaseDate}
-          onChange={(e) => setPurchaseDate(e.target.value)}
-          className="border border-neutral-300 px-4 py-2.5 rounded-lg w-full text-sm focus:outline-none focus:ring-2 focus:ring-construction focus:border-construction"
-          max={new Date().toISOString().split("T")[0]}
-          required
-        />
+        <div className="relative min-w-full h-[48px]">
+          <DatePicker
+            selected={purchaseDate}
+            onChange={(date) => setPurchaseDate(date)}
+            dateFormat="yyyy-MM-dd"
+            maxDate={new Date()}
+            className="border border-neutral-300 bg-white rounded-lg px-4 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-construction cursor-pointer w-full h-full pr-12"
+            placeholderText="Select purchase date"
+            popperPlacement="bottom"
+            required
+          />
+          <span className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
+            <svg className="w-5 h-5 text-construction-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <rect x="3" y="4" width="18" height="18" rx="2" strokeWidth="2" stroke="currentColor" fill="none" />
+              <line x1="16" y1="2" x2="16" y2="6" strokeWidth="2" stroke="currentColor" />
+              <line x1="8" y1="2" x2="8" y2="6" strokeWidth="2" stroke="currentColor" />
+              <line x1="3" y1="10" x2="21" y2="10" strokeWidth="2" stroke="currentColor" />
+            </svg>
+          </span>
+        </div>
       </div>
 
       {/* Products Section Header */}

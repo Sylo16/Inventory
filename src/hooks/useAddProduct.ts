@@ -85,10 +85,7 @@ export const useAddProduct = () => {
       setError('Product name is required');
       return false;
     }
-    if (!formData.sku.trim()) {
-      setError('SKU is required');
-      return false;
-    }
+    // SKU is now optional
     if (isNaN(Number(formData.unitPrice)) || Number(formData.unitPrice) <= 0) {
       setError('Unit price must be a positive number');
       return false;

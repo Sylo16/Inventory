@@ -1,15 +1,19 @@
 import API from '../api';
 
 export interface DamagedProduct {
+  id?: string;
   customer_name: string;
   product_name: string;
   quantity: string;
   reason: string;
   date: string;
   unit_of_measurement: string;
+  refunded?: boolean;
+  refunded_at?: string;
 }
 
 export interface DamagedProductResponse {
+  id?: string;
   customer_name?: string;
   product_name?: string;
   quantity?: string;
@@ -17,6 +21,8 @@ export interface DamagedProductResponse {
   date?: string;
   created_at?: string;
   unit_of_measurement?: string;
+  refunded?: boolean;
+  refunded_at?: string;
 }
 
 export interface GroupedCustomer {
@@ -33,12 +39,15 @@ class DamagedProductsService {
     const response = await API.get<DamagedProductResponse[]>("/damaged-products");
     
     return response.data.map((product) => ({
+      id: product.id || "",
       customer_name: product.customer_name || "",
       product_name: product.product_name || "",
       quantity: product.quantity || "0",
       reason: product.reason || "",
       date: product.date || product.created_at || "",
       unit_of_measurement: product.unit_of_measurement || "",
+      refunded: product.refunded || false,
+      refunded_at: product.refunded_at || "",
     }));
   }
 
@@ -98,6 +107,20 @@ class DamagedProductsService {
     return products.filter((product) =>
       product.customer_name.toLowerCase().includes(searchQuery.toLowerCase())
     );
+  }
+
+  /**
+   * Process refund for damaged product
+   */
+  async refundDamagedProduct(damagedProductId: string, productName: string, quantity: number): Promise<void> {
+    // Mark damaged product as refunded
+    await API.post(`/damaged-products/${damagedProductId}/refund`);
+    
+    // Deduct from inventory
+    await API.post('/inventory/deduct-from-damage', {
+      product_name: productName,
+      quantity: quantity
+    });
   }
 }
 

@@ -5,8 +5,7 @@ import {
   recordDamagedService, 
   Customer, 
   DamagedItem, 
-  ProductOption,
-  DamagedProductData
+  ProductOption
 } from '../services/recordDamagedService';
 import { showConfirm, showSuccess } from '../utils/sweetalert';
 
@@ -18,13 +17,11 @@ export const useRecordDamaged = () => {
   const [isLoading, setIsLoading] = useState(false);
   
   const [selectedCustomer, setSelectedCustomer] = useState<{value: string, label: string} | null>(null);
-  const [damageDate, setDamageDate] = useState("");
+  const [damageDate, setDamageDate] = useState<Date | null>(null);
   const [damagedItems, setDamagedItems] = useState<DamagedItem[]>([
     recordDamagedService.createEmptyItem()
   ]);
   const [customerProductOptions, setCustomerProductOptions] = useState<ProductOption[]>([]);
-
-  const today = recordDamagedService.getTodayDate();
 
   // Fetch customers on mount
   useEffect(() => {
@@ -45,7 +42,27 @@ export const useRecordDamaged = () => {
   };
 
   // Load customer products when customer is selected
-  const loadCustomerProducts = useCallback((customerId: string) => {
+  const loadCustomerProducts = useCallback(async (customerId: string) => {
+    // Check if Admin is selected
+    if (customerId === 'ADMIN') {
+      try {
+        console.log('Loading products for Admin...'); // Debug log
+        const allProducts = await recordDamagedService.fetchAllProducts();
+        console.log('Fetched products:', allProducts); // Debug log
+        setCustomerProductOptions(allProducts);
+        if (allProducts.length === 0) {
+          toast.info("No products available in inventory.");
+        } else {
+          toast.success(`Loaded ${allProducts.length} products for Admin mode`);
+        }
+      } catch (error) {
+        console.error("Error fetching all products:", error);
+        toast.error("Failed to load products");
+        setCustomerProductOptions([]);
+      }
+      return;
+    }
+
     const customer = customers.find(c => String(c.id) === String(customerId));
     
     if (!customer) {
@@ -78,7 +95,7 @@ export const useRecordDamaged = () => {
   };
 
   // Handle date change
-  const handleDateChange = (date: string) => {
+  const handleDateChange = (date: Date | null) => {
     setDamageDate(date);
   };
 
@@ -106,8 +123,13 @@ export const useRecordDamaged = () => {
         newItems[index].quantity = '';
       } else {
         const numValue = parseInt(String(value), 10);
-        const maxQty = newItems[index].maxQuantity || Infinity;
-        newItems[index].quantity = Math.min(numValue, maxQty);
+        // Only enforce max quantity for non-Admin customers
+        if (selectedCustomer?.value !== 'ADMIN') {
+          const maxQty = newItems[index].maxQuantity || Infinity;
+          newItems[index].quantity = Math.min(numValue, maxQty);
+        } else {
+          newItems[index].quantity = numValue;
+        }
       }
     } else {
       newItems[index] = { ...newItems[index], [field]: value };
@@ -133,10 +155,12 @@ export const useRecordDamaged = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const isAdmin = selectedCustomer?.value === 'ADMIN';
     const validation = recordDamagedService.validateDamagedItems(
       damagedItems, 
       selectedCustomer?.value || null, 
-      damageDate
+      damageDate,
+      isAdmin
     );
 
     if (!validation.valid) {
@@ -144,9 +168,13 @@ export const useRecordDamaged = () => {
       return;
     }
 
+    const confirmMessage = isAdmin 
+      ? 'Are you sure you want to record these damaged products as internal/supplier damages?'
+      : 'Are you sure you want to record these damaged products?';
+
     const confirmed = await showConfirm(
       'Confirm Damaged Products',
-      'Are you sure you want to record these damaged products?',
+      confirmMessage,
       'Yes, record',
       'Cancel'
     );
@@ -156,7 +184,11 @@ export const useRecordDamaged = () => {
     setIsLoading(true);
 
     try {
-      const productData: DamagedProductData[] = damagedItems.map(item => {
+      const formattedDate = damageDate 
+        ? `${damageDate.getFullYear()}-${String(damageDate.getMonth() + 1).padStart(2, '0')}-${String(damageDate.getDate()).padStart(2, '0')}`
+        : '';
+
+      const productData = damagedItems.map((item) => {
         const quantity = typeof item.quantity === 'string' ? 
           (item.quantity === '' ? 0 : parseInt(item.quantity)) : 
           item.quantity;
@@ -166,16 +198,20 @@ export const useRecordDamaged = () => {
           product_name: item.productName,
           quantity: quantity,
           reason: item.reason,
-          date: damageDate,
+          date: formattedDate,
           unit_of_measurement: item.unit_of_measurement,
         };
       });
 
-      await recordDamagedService.recordDamagedProducts(productData);
+      await recordDamagedService.recordDamagedProducts(productData, isAdmin);
       
+      const successMessage = isAdmin
+        ? 'Internal/Supplier damage recorded and inventory automatically deducted!'
+        : 'The damaged products have been recorded in the system.';
+
       await showSuccess(
         'Recorded Successfully!',
-        'The damaged products have been recorded in the system.'
+        successMessage
       );
       
       navigate("/damageproducts");
@@ -196,7 +232,6 @@ export const useRecordDamaged = () => {
     damageDate,
     damagedItems,
     customerProductOptions,
-    today,
     
     // Handlers
     handleCustomerChange,

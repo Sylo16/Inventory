@@ -5,6 +5,7 @@ import { FaShoppingCart, FaBoxes, FaMoneyBillWave, FaExclamationTriangle, FaUser
 import Breadcrumb from "../components/breadcrumbs";
 import { Link } from 'react-router-dom';
 import API from "../api";
+import ScrollToTopButton from "../components/ScrollToTopButton";
 
 // Type definitions for safety
 interface Product {
@@ -401,6 +402,7 @@ function Dashboard() {
             </p>
           </div>
         </div>
+        <ScrollToTopButton />
     </PageLayout>
   );
 }

@@ -10,6 +10,7 @@ interface Product {
   category?: string;
   updatedAt?: string;
   hidden: boolean;
+  imageUrl?: string;
 }
 
 interface LoadingStates {
@@ -50,7 +51,26 @@ const ProductTableRow: React.FC<ProductTableRowProps> = ({
   return (
     <tr className={`hover:bg-neutral-50 transition-colors ${item.hidden ? 'bg-neutral-100' : ''}`}>
       <td className="py-3 px-4">
-        <div className="font-medium text-neutral-900">{item.name}</div>
+        <div className="flex items-center gap-3">
+          {/* Product Image */}
+          <div className="w-12 h-12 rounded-lg overflow-hidden bg-neutral-100 flex-shrink-0">
+            {item.imageUrl ? (
+              <img 
+                src={item.imageUrl} 
+                alt={item.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-neutral-200 to-neutral-300">
+                <svg className="w-6 h-6 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+              </div>
+            )}
+          </div>
+          {/* Product Name */}
+          <div className="font-medium text-neutral-900">{item.name}</div>
+        </div>
       </td>
       <td className="py-3 px-4">
         <span className="text-neutral-600 text-sm">{item.category || 'Uncategorized'}</span>

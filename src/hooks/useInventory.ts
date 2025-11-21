@@ -40,7 +40,7 @@ export const useInventory = () => {
     unhide: {},
   });
 
-  const pageSize = 10;
+  const pageSize = 12;
 
   // Fetch products
   const fetchProducts = useCallback(async () => {
@@ -57,6 +57,11 @@ export const useInventory = () => {
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedCategory, showHidden]);
 
   // Quantity handlers
   const handleQuantityChange = (productId: string, value: string) => {

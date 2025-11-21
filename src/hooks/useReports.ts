@@ -14,8 +14,8 @@ import {
 } from '../services/reportsService';
 
 interface DateRange {
-  start: string;
-  end: string;
+  start: Date | null;
+  end: Date | null;
 }
 
 export const useReports = () => {
@@ -25,7 +25,7 @@ export const useReports = () => {
   const [damagedData, setDamagedData] = useState<DamagedProduct[]>([]);
   const [customersData, setCustomersData] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(false);
-  const [dateRange, setDateRange] = useState<DateRange>({ start: "", end: "" });
+  const [dateRange, setDateRange] = useState<DateRange>({ start: null, end: null });
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("all");
   const [reportTitle, setReportTitle] = useState("Inventory Report");
   const [categoryFilter, setCategoryFilter] = useState("");
@@ -80,8 +80,8 @@ export const useReports = () => {
   const filteredSalesData = reportsService.filterByTime(
     salesData.filter(sale => {
       const saleDate = new Date(sale.purchaseDate);
-      const startDate = dateRange.start ? new Date(dateRange.start) : null;
-      const endDate = dateRange.end ? new Date(dateRange.end) : null;
+      const startDate = dateRange.start;
+      const endDate = dateRange.end;
       
       const matchesSearch = 
         sale.customerName.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -100,8 +100,8 @@ export const useReports = () => {
   const filteredDamagedData = reportsService.filterByTime(
     damagedData.filter(item => {
       const damageDate = new Date(item.date);
-      const startDate = dateRange.start ? new Date(dateRange.start) : null;
-      const endDate = dateRange.end ? new Date(dateRange.end) : null;
+      const startDate = dateRange.start;
+      const endDate = dateRange.end;
       
       const matchesSearch = 
         item.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) || 

@@ -60,11 +60,45 @@ class RecordDamagedService {
   }
 
   /**
+   * Fetch all products for Admin use (no time restriction)
+   */
+  async fetchAllProducts(): Promise<ProductOption[]> {
+    try {
+      const response = await API.get("/products");
+      const products = response.data || [];
+      
+      console.log('Fetched products for Admin:', products); // Debug log
+      
+      return products.map((product: any) => ({
+        value: product.name || product.product_name,
+        label: product.name || product.product_name,
+        unit: product.unit_of_measurement || product.unit,
+        maxQuantity: product.quantity || product.stock_quantity
+      }));
+    } catch (error) {
+      console.error('Error fetching all products:', error);
+      return [];
+    }
+  }
+
+  /**
    * Record damaged products
    */
-  async recordDamagedProducts(items: DamagedProductData[]): Promise<void> {
+  async recordDamagedProducts(items: DamagedProductData[], isAdmin: boolean = false): Promise<void> {
+    // Record all damaged products
     const promises = items.map(item => API.post("/damaged-products", item));
     await Promise.all(promises);
+
+    // If Admin/Internal damage, automatically deduct from inventory
+    if (isAdmin) {
+      const deductPromises = items.map(item => 
+        API.post('/inventory/deduct-from-damage', {
+          product_name: item.product_name,
+          quantity: item.quantity
+        })
+      );
+      await Promise.all(deductPromises);
+    }
   }
 
   /**
@@ -112,7 +146,8 @@ class RecordDamagedService {
   validateDamagedItems(
     items: DamagedItem[], 
     customerId: string | null, 
-    damageDate: string
+    damageDate: Date | null,
+    isAdmin: boolean = false
   ): { valid: boolean; error?: string } {
     if (!customerId || !damageDate || items.length === 0) {
       return { valid: false, error: 'Please fill all required fields' };
@@ -127,7 +162,8 @@ class RecordDamagedService {
         return { valid: false, error: 'Please fill all fields correctly' };
       }
       
-      if (item.maxQuantity && quantity > item.maxQuantity) {
+      // Skip max quantity check for Admin
+      if (!isAdmin && item.maxQuantity && quantity > item.maxQuantity) {
         return { 
           valid: false, 
           error: `Quantity cannot exceed purchased amount (${item.maxQuantity}) for ${item.productName}` 

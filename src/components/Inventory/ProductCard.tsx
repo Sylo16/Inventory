@@ -144,7 +144,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             />
             <button
               onClick={() => onReceiveProduct(item.id)}
-              className="bg-success hover:bg-success-dark text-white px-4 py-1.5 rounded text-sm font-semibold transition-colors disabled:opacity-50 flex items-center gap-1"
+              className="bg-success hover:bg-success-dark text-white w-28 h-10 rounded text-sm font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-1"
               disabled={item.hidden || loadingStates.receive[item.id]}
             >
               {loadingStates.receive[item.id] ? (
@@ -154,7 +154,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
-                  Add
+                  Restock
                 </>
               )}
             </button>
@@ -174,7 +174,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             />
             <button
               onClick={() => onRefundProduct(item.id)}
-              className="bg-secondary hover:bg-secondary-dark text-white px-4 py-1.5 rounded text-sm font-semibold transition-colors disabled:opacity-50 flex items-center gap-1"
+              className="bg-secondary hover:bg-secondary-dark text-white w-28 h-10 rounded text-sm font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-1"
               disabled={item.hidden || loadingStates.deduct[item.id]}
             >
               {loadingStates.deduct[item.id] ? (

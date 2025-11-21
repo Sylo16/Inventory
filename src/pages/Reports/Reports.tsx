@@ -12,6 +12,7 @@ import SalesReportComponent from "../../components/ReportsPages/SalesReport";
 import DamagedReport from "../../components/ReportsPages/DamagedReport";
 import NewProductsReport from "../../components/ReportsPages/NewProductsReport";
 import NewCustomersReport from "../../components/ReportsPages/NewCustomersReport";
+import ScrollToTopButton from "../../components/ScrollToTopButton";
 
 const Reports: React.FC = () => {
   const {
@@ -229,6 +230,7 @@ const Reports: React.FC = () => {
             </div>
           </div>
       </div>
+      <ScrollToTopButton />
     </PageLayout>
   );
 };

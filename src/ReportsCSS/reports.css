@@ -9,10 +9,10 @@
     background: linear-gradient(145deg, #ffffff 0%, #f9fafb 100%);
   }
 
-  .report-card:hover {
-    transform: translateY(-6px) scale(1.02);
-    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
-  }
+  /* .report-card:hover { */
+  /*   transform: translateY(-6px) scale(1.02); */
+  /*   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15); */
+  /* } */
 
   .report-card h4 {
     @apply text-sm font-semibold uppercase tracking-wide mb-2 opacity-90;

@@ -5,6 +5,7 @@ import { ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
 import { useAddProduct } from "../../hooks/useAddProduct";
+import ScrollToTopButton from "../../components/ScrollToTopButton";
 
 const AddProduct: React.FC = () => {
   const {
@@ -142,10 +143,10 @@ const AddProduct: React.FC = () => {
                     />
                   </div>
 
-                  {/* SKU */}
+                  {/* SKU (Optional) */}
                   <div>
                     <label className="text-sm font-semibold block mb-2 text-neutral-700">
-                      SKU/Product Code <span className="text-danger">*</span>
+                      SKU/Product Code <span className="text-neutral-400 text-xs">(optional)</span>
                     </label>
                     <input 
                       type="text" 
@@ -303,6 +304,9 @@ const AddProduct: React.FC = () => {
               </div>
             </form>
           </div>
+
+        {/* Scroll to Top Button */}
+        <ScrollToTopButton />
         </div>
     </PageLayout>
   );

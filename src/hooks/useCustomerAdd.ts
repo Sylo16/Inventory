@@ -25,7 +25,7 @@ export const useCustomerAdd = () => {
   const receiptRef = useRef<HTMLDivElement>(null);
   
   const [customer, setCustomer] = useState<CustomerForm>({ name: "", phone: "" });
-  const [purchaseDate, setPurchaseDate] = useState("");
+  const [purchaseDate, setPurchaseDate] = useState<Date | null>(null);
   const [products, setProducts] = useState<ProductForm[]>([
     { productName: "", category: "", unit: "", quantity: "" }
   ]);
@@ -232,17 +232,22 @@ export const useCustomerAdd = () => {
         })
       );
 
+      // Format date to YYYY-MM-DD string
+      const formattedDate = purchaseDate 
+        ? `${purchaseDate.getFullYear()}-${String(purchaseDate.getMonth() + 1).padStart(2, '0')}-${String(purchaseDate.getDate()).padStart(2, '0')}`
+        : '';
+
       // Create customer record
       const payload: CustomerPayload = {
         name: customer.name,
         phone: customer.phone.trim() || null,
-        purchase_date: purchaseDate,
+        purchase_date: formattedDate,
         products: products.map((p) => ({
           product_name: p.productName,
           category: p.category,
           unit: p.unit,
           quantity: Number(p.quantity),
-          purchase_date: purchaseDate,
+          purchase_date: formattedDate,
         })),
       };
 
@@ -261,7 +266,7 @@ export const useCustomerAdd = () => {
           quantity: p.quantity,
           unit_price: unitPrice,
           total: total,
-          purchase_date: purchaseDate,
+          purchase_date: formattedDate,
         };
       });
 
@@ -273,7 +278,7 @@ export const useCustomerAdd = () => {
         customer: {
           name: customer.name,
           phone: customer.phone,
-          purchase_date: purchaseDate,
+          purchase_date: formattedDate,
         },
         products: receiptProductsWithPrices,
         grandTotal: grandTotal,

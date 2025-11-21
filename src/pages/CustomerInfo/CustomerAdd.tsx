@@ -2,8 +2,11 @@ import Breadcrumb from "../../components/breadcrumbs";
 import PageLayout from "../../components/PageLayout";
 import ReceiptModal from "../../components/Customer/ReceiptModal";
 import Select from "react-select";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import { useCustomerAdd } from "../../hooks/useCustomerAdd";
 import { ProductOption } from "../../services/customerService";
+import ScrollToTopButton from "../../components/ScrollToTopButton";
 
 // Define types for react-select options
 type CategoryOption = { value: string; label: string };
@@ -48,11 +51,11 @@ const CustomerAdd: React.FC = () => {
         />
           
           {/* Header Section with Gradient */}
-          <div className="bg-construction-gradient rounded-lg p-4 sm:p-6 mb-4 shadow-construction">
+          <div className="rounded-lg p-4 sm:p-6 mb-4 shadow-construction">
             <div className="flex justify-between items-center">
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-white">New Customer Purchase</h1>
-                <p className="text-white/90 text-sm mt-1">Record customer information and purchased items</p>
+                <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">New Customer Purchase</h1>
+                <p className="text-gray-500 mt-2 text-sm md:text-base">Record customer information and purchased items</p>
               </div>
             </div>
           </div>
@@ -65,7 +68,7 @@ const CustomerAdd: React.FC = () => {
               </div>
             </div>
           ) : (
-            <div className="bg-white shadow-sm rounded-lg p-4 sm:p-6">
+            <div className="bg-white shadow-sm rounded-lg p-4 sm:p-6 bg-gradient-to-br from-construction-light/30 via-white to-construction-light/10">
               {/* Customer Information Section */}
               <div className="mb-6 pb-6 border-b-2 border-neutral-200">
                 <h2 className="text-xl font-bold mb-4 text-construction-dark flex items-center gap-2">
@@ -116,13 +119,25 @@ const CustomerAdd: React.FC = () => {
                     <label className="text-sm font-semibold mb-2 block text-neutral-700">
                       Purchase Date <span className="text-danger">*</span>
                     </label>
-                    <input
-                      type="date"
-                      value={purchaseDate}
-                      onChange={(e) => setPurchaseDate(e.target.value)}
-                      className="border border-neutral-300 px-4 py-2.5 rounded-lg w-full text-sm focus:outline-none focus:ring-2 focus:ring-construction focus:border-construction"
-                      max={new Date().toISOString().split("T")[0]}
-                    />
+                    <div className="relative min-w-full h-[48px]">
+                      <DatePicker
+                        selected={purchaseDate}
+                        onChange={(date) => setPurchaseDate(date)}
+                        dateFormat="yyyy-MM-dd"
+                        maxDate={new Date()}
+                        className="border border-neutral-300 bg-white rounded-lg px-4 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-construction cursor-pointer w-full h-full pr-12"
+                        placeholderText="Select purchase date"
+                        popperPlacement="bottom"
+                      />
+                      <span className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                        <svg className="w-5 h-5 text-construction-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <rect x="3" y="4" width="18" height="18" rx="2" strokeWidth="2" stroke="currentColor" fill="none" />
+                          <line x1="16" y1="2" x2="16" y2="6" strokeWidth="2" stroke="currentColor" />
+                          <line x1="8" y1="2" x2="8" y2="6" strokeWidth="2" stroke="currentColor" />
+                          <line x1="3" y1="10" x2="21" y2="10" strokeWidth="2" stroke="currentColor" />
+                        </svg>
+                      </span>
+                    </div>
                     {errors.purchase_date && (
                       <p className="text-danger text-sm mt-1 flex items-center gap-1">
                         <span>⚠</span> {errors.purchase_date}
@@ -369,6 +384,7 @@ const CustomerAdd: React.FC = () => {
             </div>
           </div>
         )}
+        <ScrollToTopButton />
     </PageLayout>
   );
 };

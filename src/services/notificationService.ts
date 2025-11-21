@@ -4,7 +4,8 @@ export interface Notification {
   id: string;
   type: 'product_added' | 'inventory_update' | 'customer_added' | 'damaged_product_reported' 
         | 'product_received' | 'product_deducted' | 'product_archived' | 'product_configured' 
-        | 'product_unhidden' | 'customer_product_added' | 'out_of_stock' | 'critical_stock' | 'low_stock';
+        | 'product_unhidden' | 'customer_product_added' | 'out_of_stock' | 'critical_stock' 
+        | 'low_stock' | 'product_refunded' | 'inventory_deducted';
   message: string;
   read: boolean;
   created_at: string;

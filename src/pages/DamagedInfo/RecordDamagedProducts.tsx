@@ -2,9 +2,12 @@ import React from "react";
 import Breadcrumb from "../../components/breadcrumbs";
 import PageLayout from "../../components/PageLayout";
 import Select from 'react-select';
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import { ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
 import { useRecordDamaged } from "../../hooks/useRecordDamaged";
+import ScrollToTopButton from "../../components/ScrollToTopButton";
 
 const RecordDamagedProducts: React.FC = () => {
   const {
@@ -15,7 +18,6 @@ const RecordDamagedProducts: React.FC = () => {
     damageDate,
     damagedItems,
     customerProductOptions,
-    today,
     handleCustomerChange,
     handleDateChange,
     handleProductChange,
@@ -45,8 +47,18 @@ const RecordDamagedProducts: React.FC = () => {
                 </svg>
                 <div>
                   <p className="text-sm font-semibold text-blue-900">Before You Begin</p>
-                  <p className="text-xs text-blue-700 mt-1">Select a customer first, then choose products from their purchase history</p>
-                  <p className="text-xs text-blue-700 mt-1 font-semibold">⏰ Note: Only products purchased within the last 3 days can be reported as damaged</p>
+                  <p className="text-xs text-blue-700 mt-1">
+                    <strong>For Customer Damages:</strong> Select a customer, then choose products from their purchase history (last 3 days)
+                  </p>
+                  <p className="text-xs text-blue-700 mt-1">
+                    <strong>For Supplier/Internal Damages:</strong> Select "Admin (Internal/Supplier)" to access all inventory products
+                  </p>
+                  <p className="text-xs text-blue-700 mt-1 italic">
+                    💡 Use Admin option for damages during delivery from suppliers or internal accidents
+                  </p>
+                  <p className="text-xs text-green-700 mt-1 font-semibold bg-green-50 inline-block px-2 py-0.5 rounded">
+                    ⚡ Admin damages will automatically deduct from inventory (no refund needed)
+                  </p>
                 </div>
               </div>
             </div>
@@ -61,10 +73,13 @@ const RecordDamagedProducts: React.FC = () => {
                       Customer Name <span className="text-red-500">*</span>
                     </label>
                     <Select
-                      options={customers.map(customer => ({ value: customer.id, label: customer.name }))}
+                      options={[
+                        { value: 'ADMIN', label: '🔧 Admin (Internal/Supplier)' },
+                        ...customers.map(customer => ({ value: customer.id, label: customer.name }))
+                      ]}
                       value={selectedCustomer}
                       onChange={handleCustomerChange}
-                      placeholder={isLoadingCustomers ? "Loading..." : "Choose customer"}
+                      placeholder={isLoadingCustomers ? "Loading..." : "Choose customer or Admin"}
                       isClearable
                       className="react-select-container"
                       classNamePrefix="react-select"
@@ -75,22 +90,47 @@ const RecordDamagedProducts: React.FC = () => {
                           minHeight: '38px',
                           borderColor: '#d1d5db',
                           '&:hover': { borderColor: '#3b82f6' }
+                        }),
+                        option: (base, state) => ({
+                          ...base,
+                          backgroundColor: state.data.value === 'ADMIN' ? '#fef3c7' : base.backgroundColor,
+                          fontWeight: state.data.value === 'ADMIN' ? 600 : 400
                         })
                       }}
                     />
+                    {selectedCustomer?.value === 'ADMIN' && (
+                      <p className="text-xs text-amber-700 mt-1 flex items-center gap-1">
+                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                        </svg>
+                        Admin mode: Recording internal or supplier damages
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                       Date of Damage <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="date"
-                      value={damageDate}
-                      max={today}
-                      onChange={(e) => handleDateChange(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                      required
-                    />
+                    <div className="relative min-w-full h-[38px]">
+                      <DatePicker
+                        selected={damageDate}
+                        onChange={(date) => handleDateChange(date)}
+                        dateFormat="yyyy-MM-dd"
+                        maxDate={new Date()}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm cursor-pointer pr-10 h-full"
+                        placeholderText="Select damage date"
+                        popperPlacement="bottom"
+                        required
+                      />
+                      <span className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                        <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <rect x="3" y="4" width="18" height="18" rx="2" strokeWidth="2" stroke="currentColor" fill="none" />
+                          <line x1="16" y1="2" x2="16" y2="6" strokeWidth="2" stroke="currentColor" />
+                          <line x1="8" y1="2" x2="8" y2="6" strokeWidth="2" stroke="currentColor" />
+                          <line x1="3" y1="10" x2="21" y2="10" strokeWidth="2" stroke="currentColor" />
+                        </svg>
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -147,7 +187,7 @@ const RecordDamagedProducts: React.FC = () => {
                             options={customerProductOptions}
                             onChange={(option) => handleProductChange(index, option)}
                             value={customerProductOptions.find((opt) => opt.value === item.productId) || null}
-                            placeholder={selectedCustomer ? "Select product" : "Select customer first"}
+                            placeholder={selectedCustomer ? (selectedCustomer.value === 'ADMIN' ? "Select any product" : "Select product") : "Select customer first"}
                             isClearable
                             className="react-select-container"
                             classNamePrefix="react-select"
@@ -176,12 +216,17 @@ const RecordDamagedProducts: React.FC = () => {
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                             required
                             min={1}
-                            max={item.maxQuantity}
+                            max={selectedCustomer?.value === 'ADMIN' ? undefined : item.maxQuantity}
                             placeholder="0"
                           />
-                          {item.maxQuantity && (
+                          {item.maxQuantity && selectedCustomer?.value !== 'ADMIN' && (
                             <p className="text-xs text-gray-500 mt-1">
                               Max: {item.maxQuantity}
+                            </p>
+                          )}
+                          {selectedCustomer?.value === 'ADMIN' && (
+                            <p className="text-xs text-amber-600 mt-1">
+                              No limit (Admin)
                             </p>
                           )}
                         </div>
@@ -253,6 +298,7 @@ const RecordDamagedProducts: React.FC = () => {
             </div>
           </div>
         </div>
+        <ScrollToTopButton />
     </PageLayout>
   );
 };

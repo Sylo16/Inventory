@@ -10,10 +10,10 @@
   justify-content: center;
   width: 48px;
   height: 48px;
-  background: linear-gradient(135deg, #f59e0b, #d97706);
+  background: linear-gradient(135deg, #3498db, #3498db);
   color: white;
   border-radius: 12px;
-  box-shadow: 0 8px 25px rgba(245, 158, 11, 0.3);
+  /* Removed orange box-shadow for cleaner look */
   transition: all 0.3s ease;
   cursor: pointer;
   outline: none;
@@ -22,7 +22,6 @@
 
 .notification-button:hover {
   transform: scale(1.05) translateY(-2px);
-  box-shadow: 0 12px 35px rgba(245, 158, 11, 0.4);
 }
 
 .notification-badge {
@@ -101,7 +100,6 @@
   padding: 8px 16px;
   border-radius: 8px;
   font-weight: 600;
-  transition: all 0.2s;
   box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
 }
 
@@ -125,9 +123,8 @@
 }
 
 .notification-item.unread {
-  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  background: #77c0f1;
   font-weight: 600;
-  border-left: 4px solid #f59e0b;
 }
 
 .notification-item.read {
@@ -141,7 +138,7 @@
 }
 
 .notification-item.unread:hover {
-  background-color: #fde68a;
+  background-color: #43adf4;
 }
 
 .notification-item.read:hover {
@@ -240,14 +237,14 @@
 }
 
 .notification-list::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
+  background: linear-gradient(135deg, #43adf4, #2563eb);
   border-radius: 12px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
 
 .notification-list::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #d97706, #b45309);
+  background: linear-gradient(135deg, #43adf4, #2563eb);
   background-clip: content-box;
 }
 
@@ -258,7 +255,7 @@
 
 .notification-list {
   scrollbar-width: thin;
-  scrollbar-color: #f59e0b #f1f5f9;
+  scrollbar-color: #43adf4 #f1f5f9;
 }
 
 /* Animations */

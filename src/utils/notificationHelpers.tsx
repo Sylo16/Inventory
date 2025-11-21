@@ -10,7 +10,9 @@ import {
   Eye, 
   AlertTriangle, 
   BatteryWarning, 
-  BatteryLow 
+  BatteryLow,
+  DollarSign,
+  TrendingDown
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { Notification } from '../services/notificationService.ts';
@@ -40,6 +42,8 @@ export const getNotificationIcon = (type: string) => {
     case 'out_of_stock': return <AlertTriangle className="w-4 h-4" />;
     case 'critical_stock': return <BatteryWarning className="w-4 h-4" />;
     case 'low_stock': return <BatteryLow className="w-4 h-4" />;
+    case 'product_refunded': return <DollarSign className="w-4 h-4" />;
+    case 'inventory_deducted': return <TrendingDown className="w-4 h-4" />;
     default: return <Bell className="w-4 h-4" />;
   }
 };
@@ -59,6 +63,8 @@ export const getNotificationColor = (type: string) => {
     case 'out_of_stock': return '#ef4444';
     case 'critical_stock': return '#f97316';
     case 'low_stock': return '#eab308';
+    case 'product_refunded': return '#10b981';
+    case 'inventory_deducted': return '#dc2626';
     default: return '#6b7280';
   }
 };
@@ -75,6 +81,7 @@ export const useNotificationNavigation = () => {
       case 'out_of_stock':
       case 'critical_stock':
       case 'low_stock':
+      case 'inventory_deducted':
         navigate(`/inventory${notification.product_id ? `?product=${notification.product_id}` : ''}`);
         break;
       case 'product_archived':
@@ -91,7 +98,8 @@ export const useNotificationNavigation = () => {
         navigate(`/customerpurchased${notification.product_id ? `?product=${notification.product_id}` : ''}`);
         break;
       case 'damaged_product_reported':
-        navigate(`/damageproducts${notification.product_id ? `?product=${notification.product_id}` : ''}`);
+      case 'product_refunded':
+        navigate('/damageproducts');
         break;
       default: 
         break;

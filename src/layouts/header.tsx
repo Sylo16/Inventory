@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, User, Settings, ChevronDown, Maximize, Minimize, Menu } from 'lucide-react';
+import { X } from 'lucide-react';
 import NotificationBell from '../components/Notification/NotificationBell';
 import { useUser } from '../contexts/UserContext';
 import { useSidebar } from '../contexts/SidebarContext';
@@ -54,23 +55,24 @@ function Header() {
     return (
         <>
             <header
-                className={`app-header sticky shadow-construction bg-construction-gradient ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}
+                className={`app-header sticky shadow-construction bg-construction-gradient ${isSidebarCollapsed ? 'sidebar-collapsed' : ''} relative`}
                 id="header"
             >
+                {/* Sidebar toggle - burger in top-left corner, inside header */}
+                <button
+                    onClick={toggleSidebar}
+                    className="absolute left-0 top-0 m-3 items-center justify-center rounded-md bg-transparent focus:outline-none z-20 hidden lg:flex"
+                    title="Toggle Sidebar"
+                >
+                    {isSidebarCollapsed ? (
+                        <X className="w-7 h-7 text-white" />
+                    ) : (
+                        <Menu className="w-7 h-7 text-white" />
+                    )}
+                </button>
                 <div className="main-header-container container-fluid flex justify-between items-center p-3 sm:p-4">
-                    {/* Left side - Sidebar toggle (hidden on mobile) */}
-                    <div className="header-element flex items-center" style={{ marginLeft: isSidebarCollapsed ? '-40px' : '0', transition: 'margin-left 0.3s ease-in-out' }}>
-                        <button
-                            onClick={toggleSidebar}
-                            className="notification-button hidden lg:flex"
-                            title="Toggle Sidebar"
-                        >
-                            <Menu className="w-6 h-6" style={{ color: 'white' }} />
-                        </button>
-                    </div>
-
                     {/* Right side */}
-                    <div className="flex items-center gap-2 sm:gap-4">
+                    <div className="flex items-center gap-2 sm:gap-4 ml-auto">
                         <NotificationBell />
 
                         {/* Fullscreen Toggle Button styled same as notif bell */}

@@ -1,5 +1,8 @@
 import React from 'react';
 import { Search, Calendar, Clock } from 'lucide-react';
+import DatePicker from 'react-datepicker';
+import Select from 'react-select';
+import 'react-datepicker/dist/react-datepicker.css';
 import { ActiveTab, TimeFilter, StockStatusFilter } from '../../services/reportsService';
 
 interface ReportFiltersProps {
@@ -7,7 +10,7 @@ interface ReportFiltersProps {
   searchQuery: string;
   categoryFilter: string;
   stockStatusFilter: StockStatusFilter;
-  dateRange: { start: string; end: string };
+  dateRange: { start: Date | null; end: Date | null };
   timeFilter: TimeFilter;
   categories: string[];
   stockStatusCounts: {
@@ -19,7 +22,7 @@ interface ReportFiltersProps {
   onSearchChange: (value: string) => void;
   onCategoryChange: (value: string) => void;
   onStockStatusChange: (value: StockStatusFilter) => void;
-  onDateRangeChange: (range: { start: string; end: string }) => void;
+  onDateRangeChange: (range: { start: Date | null; end: Date | null }) => void;
   onTimeFilterChange: (value: TimeFilter) => void;
 }
 
@@ -55,6 +58,73 @@ const ReportFilters: React.FC<ReportFiltersProps> = ({
     }
   };
 
+  // Category options
+  const categoryOptions = [
+    { value: "", label: "All Categories" },
+    ...categories.map(category => ({ value: category, label: category }))
+  ];
+
+  // Stock status options
+  const stockStatusOptions = [
+    { value: "all", label: "All Stock" },
+    { value: "in", label: `In Stock (${stockStatusCounts.in})` },
+    { value: "low", label: `Low Stock (${stockStatusCounts.low})` },
+    { value: "critical", label: `Critical (${stockStatusCounts.critical})` },
+    { value: "out", label: `Out of Stock (${stockStatusCounts.out})` }
+  ];
+
+  // Time filter options
+  const timeFilterOptions = [
+    { value: "all", label: "All Time" },
+    { value: "today", label: "Today" },
+    { value: "week", label: "This Week" },
+    { value: "month", label: "This Month" },
+    { value: "year", label: "This Year" }
+  ];
+
+  // Custom styles for react-select
+  const selectStyles = {
+    control: (base: any, state: any) => ({
+      ...base,
+      minWidth: '160px',
+      borderWidth: '2px',
+      borderColor: state.isFocused ? '#3b82f6' : '#d1d5db',
+      borderRadius: '0.5rem',
+      padding: '2px 4px',
+      boxShadow: state.isFocused ? '0 0 0 2px rgba(59, 130, 246, 0.2)' : 'none',
+      '&:hover': {
+        borderColor: '#60a5fa'
+      },
+      transition: 'all 0.2s',
+      backgroundColor: 'white'
+    }),
+    option: (base: any, state: any) => ({
+      ...base,
+      backgroundColor: state.isSelected ? '#3b82f6' : state.isFocused ? '#dbeafe' : 'white',
+      color: state.isSelected ? 'white' : '#1f2937',
+      cursor: 'pointer',
+      '&:active': {
+        backgroundColor: '#3b82f6'
+      }
+    }),
+    menu: (base: any) => ({
+      ...base,
+      borderRadius: '0.5rem',
+      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+      zIndex: 9999
+    }),
+    singleValue: (base: any) => ({
+      ...base,
+      color: '#1f2937',
+      fontSize: '0.875rem'
+    }),
+    placeholder: (base: any) => ({
+      ...base,
+      color: '#9ca3af',
+      fontSize: '0.875rem'
+    })
+  };
+
   return (
     <div className="bg-white rounded-xl p-4 md:p-6 shadow-md border border-gray-200">
       <div className="flex flex-wrap gap-3 md:gap-4 items-center">
@@ -76,41 +146,34 @@ const ReportFilters: React.FC<ReportFiltersProps> = ({
       {/* Category Filter */}
       {(activeTab === "inventory" || activeTab === "newProducts") && (
         <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-4 py-2 border border-gray-200">
-          <label htmlFor="category" className="text-sm font-semibold text-gray-700 whitespace-nowrap">
+          <label className="text-sm font-semibold text-gray-700 whitespace-nowrap">
             Category:
           </label>
-          <select
-            id="category"
-            value={categoryFilter}
-            onChange={(e) => onCategoryChange(e.target.value)}
-            className="border-2 border-gray-300 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-lg px-3 py-2 bg-white transition-all duration-200 outline-none text-sm min-w-[140px]"
-          >
-            <option value="">All Categories</option>
-            {categories.map(category => (
-              <option key={category} value={category}>{category}</option>
-            ))}
-          </select>
+          <Select
+            value={categoryOptions.find(opt => opt.value === categoryFilter)}
+            onChange={(option) => onCategoryChange(option?.value || "")}
+            options={categoryOptions}
+            styles={selectStyles}
+            isSearchable={true}
+            placeholder="Select category..."
+          />
         </div>
       )}
 
       {/* Stock Status Filter */}
       {activeTab === "inventory" && (
         <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-4 py-2 border border-gray-200">
-          <label htmlFor="stockStatus" className="text-sm font-semibold text-gray-700 whitespace-nowrap">
+          <label className="text-sm font-semibold text-gray-700 whitespace-nowrap">
             Stock:
           </label>
-          <select
-            id="stockStatus"
-            value={stockStatusFilter}
-            onChange={(e) => onStockStatusChange(e.target.value as StockStatusFilter)}
-            className="border-2 border-gray-300 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-lg px-3 py-2 bg-white transition-all duration-200 outline-none text-sm min-w-[160px]"
-          >
-            <option value="all">All Stock</option>
-            <option value="in">In Stock ({stockStatusCounts.in})</option>
-            <option value="low">Low Stock ({stockStatusCounts.low})</option>
-            <option value="critical">Critical ({stockStatusCounts.critical})</option>
-            <option value="out">Out of Stock ({stockStatusCounts.out})</option>
-          </select>
+          <Select
+            value={stockStatusOptions.find(opt => opt.value === stockStatusFilter)}
+            onChange={(option) => onStockStatusChange((option?.value || "all") as StockStatusFilter)}
+            options={stockStatusOptions}
+            styles={selectStyles}
+            isSearchable={false}
+            placeholder="Select stock status..."
+          />
         </div>
       )}
 
@@ -119,23 +182,32 @@ const ReportFilters: React.FC<ReportFiltersProps> = ({
         <div className="flex flex-wrap items-center gap-2 bg-gray-50 rounded-xl px-4 py-2 border border-gray-200">
           <Calendar className="text-blue-600" size={20} />
           <label htmlFor="startDate" className="text-sm font-semibold text-gray-700">From:</label>
-          <input
-            type="date"
-            id="startDate"
-            value={dateRange.start}
-            onChange={(e) => onDateRangeChange({...dateRange, start: e.target.value})}
-            className="border-2 border-gray-300 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-lg px-3 py-2 bg-white transition-all duration-200 outline-none text-sm"
-            max={new Date().toISOString().split('T')[0]}
-          />
+          <div className="relative">
+            <DatePicker
+              selected={dateRange.start}
+              onChange={(date) => onDateRangeChange({...dateRange, start: date})}
+              maxDate={new Date()}
+              dateFormat="yyyy-MM-dd"
+              className="border-2 border-gray-300 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-lg px-3 py-2 bg-white transition-all duration-200 outline-none text-sm w-[150px]"
+              placeholderText="Start date"
+              popperPlacement="bottom"
+            />
+            <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+          </div>
           <label htmlFor="endDate" className="text-sm font-semibold text-gray-700">To:</label>
-          <input
-            type="date"
-            id="endDate"
-            value={dateRange.end}
-            onChange={(e) => onDateRangeChange({...dateRange, end: e.target.value})}
-            className="border-2 border-gray-300 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-lg px-3 py-2 bg-white transition-all duration-200 outline-none text-sm"
-            max={new Date().toISOString().split('T')[0]}
-          />
+          <div className="relative">
+            <DatePicker
+              selected={dateRange.end}
+              onChange={(date) => onDateRangeChange({...dateRange, end: date})}
+              maxDate={new Date()}
+              minDate={dateRange.start || undefined}
+              dateFormat="yyyy-MM-dd"
+              className="border-2 border-gray-300 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-lg px-3 py-2 bg-white transition-all duration-200 outline-none text-sm w-[150px]"
+              placeholderText="End date"
+              popperPlacement="bottom"
+            />
+            <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+          </div>
         </div>
       )}
 
@@ -143,21 +215,17 @@ const ReportFilters: React.FC<ReportFiltersProps> = ({
       {(activeTab === "newProducts" || activeTab === "newCustomers") && (
         <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-4 py-2 border border-gray-200">
           <Clock className="text-purple-600" size={20} />
-          <label htmlFor="timeFilter" className="text-sm font-semibold text-gray-700 whitespace-nowrap">
+          <label className="text-sm font-semibold text-gray-700 whitespace-nowrap">
             Time:
           </label>
-          <select
-            id="timeFilter"
-            value={timeFilter}
-            onChange={(e) => onTimeFilterChange(e.target.value as TimeFilter)}
-            className="border-2 border-gray-300 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-lg px-3 py-2 bg-white transition-all duration-200 outline-none text-sm min-w-[140px]"
-          >
-            <option value="all">All Time</option>
-            <option value="today">Today</option>
-            <option value="week">This Week</option>
-            <option value="month">This Month</option>
-            <option value="year">This Year</option>
-          </select>
+          <Select
+            value={timeFilterOptions.find(opt => opt.value === timeFilter)}
+            onChange={(option) => onTimeFilterChange((option?.value || "all") as TimeFilter)}
+            options={timeFilterOptions}
+            styles={selectStyles}
+            isSearchable={false}
+            placeholder="Select time range..."
+          />
         </div>
       )}
     </div>
