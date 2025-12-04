@@ -1,18 +1,19 @@
 import React from 'react';
 import Breadcrumb from "../../components/breadcrumbs";
 import PageLayout from "../../components/PageLayout";
-import Select from 'react-select';
+import FilterDropdown from "../../components/FilterDropdown";
 import { ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
-import { Upload, X, Image as Trash2 } from 'lucide-react';
-import { useAddProduct } from "../../hooks/useAddProduct";
+import { Upload, X } from 'lucide-react';
+import { useEditProduct } from "../../hooks/useEditProduct";
 import ScrollToTopButton from "../../components/ScrollToTopButton";
 
-const AddProduct: React.FC = () => {
+const EditProduct: React.FC = () => {
   const {
     formData,
     imagePreview,
     isLoading,
+    isSaving,
     error,
     categoryOptions,
     unitOptions,
@@ -21,33 +22,26 @@ const AddProduct: React.FC = () => {
     handleSelectChange,
     handleImageChange,
     handleRemoveImage,
-    addVariantRow,
-    removeVariantRow,
     handleVariantChange,
     setDefaultVariant,
-    disableVariants,
     handleSubmit,
     navigate
-  } = useAddProduct();
+  } = useEditProduct();
 
   const isVariantMode = variants.length > 0;
 
-  // Custom Select Styles
-  const customSelectStyles = {
-    control: (base: any, state: any) => ({
-      ...base,
-      minHeight: '44px',
-      borderWidth: '1px',
-      borderColor: state.isFocused ? '#3B82F6' : '#E2E8F0', // Blue-500 or Slate-200
-      boxShadow: state.isFocused ? '0 0 0 2px rgba(59, 130, 246, 0.1)' : 'none',
-      borderRadius: '0.5rem',
-      '&:hover': { borderColor: '#3B82F6' },
-    }),
-    menu: (base: any) => ({ ...base, zIndex: 50, borderRadius: '0.5rem' }),
-  };
+  if (isLoading) {
+    return (
+      <PageLayout className="p-0 bg-slate-50 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-500 font-medium">Loading product details...</p>
+        </div>
+      </PageLayout>
+    );
+  }
 
   return (
-    // PRESERVED YOUR REQUESTED LAYOUT WRAPPER
     <PageLayout className="p-0 bg-slate-50 min-h-screen animate-slideInUp">
       <ToastContainer position="top-right" autoClose={3000} />
       
@@ -56,9 +50,9 @@ const AddProduct: React.FC = () => {
         {/* Breadcrumb Section */}
         <div className="mb-6">
           <Breadcrumb
-            title="Add Product"
+            title="Edit Product"
             links={[{ text: "Inventory", link: "/inventory" }]}
-            active="Add Product"
+            active="Edit Product"
           />
         </div>
 
@@ -86,7 +80,7 @@ const AddProduct: React.FC = () => {
                     value={formData.name} 
                     onChange={handleChange} 
                     placeholder="Product Name" 
-                    className="w-full px-4 py-2lg rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium" 
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium" 
                   />
                   <p className="text-xs text-slate-400 mt-1">*Product Name should not exceed 30 characters</p>
                 </div>
@@ -95,12 +89,13 @@ const AddProduct: React.FC = () => {
                   {/* Category */}
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-2">Category</label>
-                    <Select
-                      value={formData.category ? { label: formData.category, value: formData.category } : null}
-                      onChange={(selected) => handleSelectChange("category", selected?.value || "")}
+                    <FilterDropdown
+                      value={formData.category || ""}
+                      onChange={(value) => handleSelectChange("category", value)}
                       options={categoryOptions}
                       placeholder="Select Category"
-                      styles={customSelectStyles}
+                      className="w-full"
+                      minWidth="w-full"
                     />
                   </div>
 
@@ -113,22 +108,24 @@ const AddProduct: React.FC = () => {
                       value={formData.sku} 
                       onChange={handleChange} 
                       placeholder="Product SKU" 
-                      className="w-full px-4 py-2lg rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium" 
+                      disabled={isVariantMode}
+                      className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium ${isVariantMode ? 'bg-slate-100 text-slate-400' : 'bg-white border-slate-200'}`}
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Unit */}
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-2">Unit <span className="text-red-500">*</span></label>
-                     <Select
-                      value={formData.unitOfMeasurement ? { label: formData.unitOfMeasurement, value: formData.unitOfMeasurement } : null}
-                      onChange={(selected) => handleSelectChange("unitOfMeasurement", selected?.value || "")}
+                     <FilterDropdown
+                      value={formData.unitOfMeasurement || ""}
+                      onChange={(value) => handleSelectChange("unitOfMeasurement", value)}
                       options={unitOptions}
                       placeholder="Select"
-                      isDisabled={isVariantMode}
-                      styles={customSelectStyles}
+                      disabled={isVariantMode}
+                      className="w-full"
+                      minWidth="w-full"
                     />
                   </div>
 
@@ -147,40 +144,18 @@ const AddProduct: React.FC = () => {
                       className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium ${isVariantMode ? 'bg-slate-100 text-slate-400' : 'bg-white border-slate-200'}`} 
                     />
                   </div>
-
-                  {/* Quantity */}
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">Initial Stock <span className="text-red-500">*</span></label>
-                    <input 
-                      type="number" 
-                      min="0"
-                      name="quantity" 
-                      value={formData.quantity} 
-                      onChange={handleChange} 
-                      disabled={isVariantMode}
-                      placeholder="0" 
-                      className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium ${isVariantMode ? 'bg-slate-100 text-slate-400' : 'bg-white border-slate-200'}`} 
-                    />
-                  </div>
                 </div>
 
                 {/* Variant Section */}
                 <div className="pt-4 border-t border-slate-100">
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-sm font-semibold text-slate-700">Product Variants</h3>
-                    <button
-                      type="button"
-                      onClick={isVariantMode ? disableVariants : () => addVariantRow()}
-                      className="text-blue-600 text-sm font-medium hover:underline"
-                    >
-                      {isVariantMode ? 'Disable Variants' : '+ Add Variants'}
-                    </button>
                   </div>
 
                   {isVariantMode && (
                     <div className="space-y-4">
                       {variants.map((variant, index) => (
-                        <div key={variant.tempId} className="plg rounded-lg bg-slate-50">
+                        <div key={variant.tempId} className="p-4 rounded-lg bg-slate-50 border border-slate-200">
                           <div className="flex justify-between items-center mb-3">
                             <span className="text-xs font-bold text-slate-500 uppercase">Variant {index + 1}</span>
                             <div className="flex items-center gap-3">
@@ -194,21 +169,51 @@ const AddProduct: React.FC = () => {
                                 />
                                 Default
                               </label>
-                              <button type="button" onClick={() => removeVariantRow(variant.tempId)} className="text-slate-400 hover:text-red-500 transition-colors">
-                                <Trash2 className="w-4 h-4" />
-                              </button>
                             </div>
                           </div>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                             <input type="text" placeholder="Unit Label" value={variant.unitLabel} onChange={(e) => handleVariantChange(variant.tempId, 'unitLabel', e.target.value)} className="col-span-2 px-3 py-2 bg-whilg rounded text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none" />
-                             <input type="number" placeholder="Price" value={variant.unitPrice} onChange={(e) => handleVariantChange(variant.tempId, 'unitPrice', e.target.value)} className="px-3 py-2 bg-whilg rounded text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none" />
-                             <input type="number" placeholder="Qty" value={variant.quantity} onChange={(e) => handleVariantChange(variant.tempId, 'quantity', e.target.value)} className="px-3 py-2 bg-whilg rounded text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none" />
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                             <div>
+                                <label className="text-xs text-slate-500 mb-1 block">Unit Label</label>
+                                <input type="text" placeholder="e.g. Small, Red" value={variant.unitLabel} onChange={(e) => handleVariantChange(variant.tempId, 'unitLabel', e.target.value)} className="w-full px-3 py-2 bg-white border border-slate-200 rounded text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none" />
+                             </div>
+                             <div>
+                                <label className="text-xs text-slate-500 mb-1 block">Price</label>
+                                <input type="number" placeholder="0.00" value={variant.unitPrice} onChange={(e) => handleVariantChange(variant.tempId, 'unitPrice', e.target.value)} className="w-full px-3 py-2 bg-white border border-slate-200 rounded text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none" />
+                             </div>
+                             <div>
+                                <label className="text-xs text-slate-500 mb-1 block">Current Stock (Read-only)</label>
+                                <input type="number" value={variant.quantity} disabled className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded text-sm text-slate-500 cursor-not-allowed" />
+                             </div>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                            <div>
+                              <label className="text-xs text-slate-500 mb-1 block">Variant SKU / Code</label>
+                              <input
+                                type="text"
+                                placeholder="Optional SKU"
+                                value={variant.sku || ''}
+                                onChange={(e) => handleVariantChange(variant.tempId, 'sku', e.target.value)}
+                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs text-slate-500 mb-1 block">Barcode (Optional)</label>
+                              <input
+                                type="text"
+                                placeholder="e.g. 123456789"
+                                value={variant.barcode || ''}
+                                onChange={(e) => handleVariantChange(variant.tempId, 'barcode', e.target.value)}
+                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+                              />
+                            </div>
                           </div>
                         </div>
                       ))}
-                      <button type="button" onClick={() => addVariantRow()} className="w-full py-2 border border-dashed border-slate-300 rounded text-sm text-slate-500 hover:border-blue-500 hover:text-blue-500 transition-colors">
-                        + Add Another Variant
-                      </button>
+                    </div>
+                  )}
+                  {!isVariantMode && (
+                    <div className="text-sm text-slate-500 italic">
+                      No variants added. This product uses the base price and unit.
                     </div>
                   )}
                 </div>
@@ -270,10 +275,10 @@ const AddProduct: React.FC = () => {
               </button>
               <button 
                 type="submit" 
-                disabled={isLoading} 
+                disabled={isSaving} 
                 className="px-8 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-100 transition-all shadow-sm"
               >
-                {isLoading ? 'Saving...' : 'Save Product'}
+                {isSaving ? 'Updating...' : 'Update Product'}
               </button>
             </div>
           </form>
@@ -285,4 +290,4 @@ const AddProduct: React.FC = () => {
   );
 };
 
-export default AddProduct;
+export default EditProduct;

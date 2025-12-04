@@ -1,8 +1,7 @@
 import React from 'react';
-import { Search, Calendar, Clock } from 'lucide-react';
-import DatePicker from 'react-datepicker';
+import { Search, Clock } from 'lucide-react';
+import AdvancedDateRangePicker from '../AdvancedDateRangePicker';
 import Select from 'react-select';
-import 'react-datepicker/dist/react-datepicker.css';
 import { ActiveTab, TimeFilter, StockStatusFilter } from '../../services/reportsService';
 
 interface ReportFiltersProps {
@@ -180,34 +179,11 @@ const ReportFilters: React.FC<ReportFiltersProps> = ({
       {/* Date Range Filter */}
       {(activeTab === "sales" || activeTab === "damaged") && (
         <div className="flex flex-wrap items-center gap-2 bg-gray-50 rounded-xl px-4 py-2 border border-gray-200">
-          <Calendar className="text-blue-600" size={20} />
-          <label htmlFor="startDate" className="text-sm font-semibold text-gray-700">From:</label>
-          <div className="relative">
-            <DatePicker
-              selected={dateRange.start}
-              onChange={(date) => onDateRangeChange({...dateRange, start: date})}
-              maxDate={new Date()}
-              dateFormat="yyyy-MM-dd"
-              className="border-2 border-gray-300 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-lg px-3 py-2 bg-white transition-all duration-200 outline-none text-sm w-[150px]"
-              placeholderText="Start date"
-              popperPlacement="bottom"
-            />
-            <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
-          </div>
-          <label htmlFor="endDate" className="text-sm font-semibold text-gray-700">To:</label>
-          <div className="relative">
-            <DatePicker
-              selected={dateRange.end}
-              onChange={(date) => onDateRangeChange({...dateRange, end: date})}
-              maxDate={new Date()}
-              minDate={dateRange.start || undefined}
-              dateFormat="yyyy-MM-dd"
-              className="border-2 border-gray-300 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-lg px-3 py-2 bg-white transition-all duration-200 outline-none text-sm w-[150px]"
-              placeholderText="End date"
-              popperPlacement="bottom"
-            />
-            <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
-          </div>
+          <AdvancedDateRangePicker
+            startDate={dateRange.start}
+            endDate={dateRange.end}
+            onChange={([start, end]) => onDateRangeChange({ start, end })}
+          />
         </div>
       )}
 

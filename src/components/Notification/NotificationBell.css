@@ -10,14 +10,11 @@
   justify-content: center;
   width: 48px;
   height: 48px;
-  background: linear-gradient(135deg, #3498db, #3498db);
-  color: white;
+  color: gray;
   border-radius: 12px;
-  /* Removed orange box-shadow for cleaner look */
   transition: all 0.3s ease;
   cursor: pointer;
   outline: none;
-  border: 2px solid rgba(255, 255, 255, 0.2);
 }
 
 .notification-button:hover {
@@ -123,7 +120,7 @@
 }
 
 .notification-item.unread {
-  background: #77c0f1;
+  background: rgb(190, 229, 255);
   font-weight: 600;
 }
 
@@ -138,11 +135,11 @@
 }
 
 .notification-item.unread:hover {
-  background-color: #43adf4;
+  background-color: #ffffff;
 }
 
 .notification-item.read:hover {
-  background-color: #f8fafc;
+  background-color: #ffffff;
 }
 
 .notification-content {

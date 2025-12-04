@@ -1,5 +1,18 @@
 import API from "../api";
 
+export interface ProductVariantResponse {
+  id: string;
+  product_id: string;
+  sku?: string | null;
+  unit_label: string;
+  unit_price: string | number;
+  quantity: number;
+  conversion_factor: number;
+  barcode?: string | null;
+  is_default: boolean;
+  hidden: boolean;
+}
+
 export interface ProductResponse {
   id: string;
   name: string;
@@ -7,9 +20,24 @@ export interface ProductResponse {
   unit_price: string | number;
   unit_of_measurement: string;
   category?: string;
+  sku?: string | null;
+  barcode?: string | null;
   updated_at?: string;
   hidden: boolean;
-  image_url?: string;
+  image_url?: string | null;
+  variants?: ProductVariantResponse[];
+}
+
+export interface ProductVariant {
+  id: string;
+  sku?: string | null;
+  unitLabel: string;
+  unitPrice: number;
+  quantity: number;
+  conversionFactor: number;
+  barcode?: string | null;
+  isDefault: boolean;
+  hidden: boolean;
 }
 
 export interface Product {
@@ -22,6 +50,11 @@ export interface Product {
   updatedAt?: string;
   hidden: boolean;
   imageUrl?: string;
+  sku?: string;
+  barcode?: string;
+  variants: ProductVariant[];
+  defaultVariantId?: string | null;
+  hasVariants: boolean;
 }
 
 export interface NotificationPayload {
@@ -36,13 +69,33 @@ class InventoryService {
   // Fetch all products
   async fetchProducts(): Promise<Product[]> {
     const response = await API.get("/products");
-    return response.data.map((item: ProductResponse) => this.transformProduct(item));
+    const payload = Array.isArray(response.data)
+      ? response.data
+      : response.data?.products ?? [];
+
+    return payload.map((item: ProductResponse) => this.transformProduct(item));
+  }
+
+  // Get single product
+  async getProduct(productId: string): Promise<Product> {
+    const response = await API.get(`/products/${productId}`);
+    const payload = response.data?.product ?? response.data?.data ?? response.data;
+
+    if (!payload) {
+      throw new Error("Product data is missing");
+    }
+
+    return this.transformProduct(payload);
   }
 
   // Update product
-  async updateProduct(productId: string, product: Product) {
-    const response = await API.put(`/products/${productId}`, product);
-    return response.data.product;
+  async updateProduct(productId: string, product: any) { // Changed type to any to allow FormData or partial updates
+    const response = await API.post(`/products/${productId}?_method=PUT`, product, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return this.transformProduct(response.data.product);
   }
 
   // Hide product
@@ -56,15 +109,15 @@ class InventoryService {
   }
 
   // Receive product (add stock)
-  async receiveProduct(productId: string, quantity: number) {
-    const response = await API.put(`/products/${productId}/receive`, { quantity });
-    return response.data.product;
+  async receiveProduct(productId: string, quantity: number, variantId?: string) {
+    const response = await API.put(`/products/${productId}/receive`, { quantity, variant_id: variantId });
+    return this.transformProduct(response.data.product);
   }
 
   // Deduct product (remove stock)
-  async deductProduct(productId: string, quantity: number) {
-    const response = await API.put(`/products/${productId}/deducted`, { quantity });
-    return response.data.product;
+  async deductProduct(productId: string, quantity: number, variantId?: string) {
+    const response = await API.put(`/products/${productId}/deducted`, { quantity, variant_id: variantId });
+    return this.transformProduct(response.data.product);
   }
 
   // Send notification
@@ -115,31 +168,68 @@ class InventoryService {
 
   // Transform API response to Product model
   private transformProduct(item: ProductResponse): Product {
-    // Handle both base64 images (old) and file paths (new)
-    let imageUrl = undefined;
-    if (item.image_url) {
-      if (item.image_url.startsWith('data:image')) {
-        imageUrl = item.image_url;
-      } else {
-        imageUrl = `http://localhost:8000/storage/${item.image_url}`;
-      }
+    if (!item) {
+      throw new Error("Product data is missing");
     }
 
+    const rawVariants = Array.isArray(item.variants) ? item.variants : [];
+    const variants = rawVariants.map((variant) => this.transformVariant(variant));
+    const defaultVariant = variants.find((variant) => variant.isDefault) || variants[0];
+    const hasVariants = rawVariants.length > 1;
+
     return {
-      id: item.id,
+      id: String(item.id),
       name: item.name,
       quantity: item.quantity,
-      unitPrice: typeof item.unit_price === 'string' 
-        ? parseFloat(item.unit_price) || 0 
-        : Number(item.unit_price) || 0,
-      unitOfMeasurement: item.unit_of_measurement,
+      unitPrice: defaultVariant?.unitPrice ?? this.parseNumber(item.unit_price),
+      unitOfMeasurement: defaultVariant?.unitLabel ?? item.unit_of_measurement,
       category: item.category,
-      updatedAt: item.updated_at 
-        ? new Date(item.updated_at).toLocaleDateString() 
-        : "",
+      updatedAt: item.updated_at ? new Date(item.updated_at).toLocaleDateString() : "",
       hidden: item.hidden,
-      imageUrl: imageUrl,
+      imageUrl: this.resolveImageUrl(item.image_url),
+      sku: item.sku ?? defaultVariant?.sku ?? undefined,
+      barcode: item.barcode ?? defaultVariant?.barcode ?? undefined,
+      variants,
+      defaultVariantId: defaultVariant?.id,
+      hasVariants,
     };
+  }
+
+  private transformVariant(variant: ProductVariantResponse): ProductVariant {
+    return {
+      id: String(variant.id),
+      sku: variant.sku ?? undefined,
+      unitLabel: variant.unit_label,
+      unitPrice: this.parseNumber(variant.unit_price),
+      quantity: variant.quantity,
+      conversionFactor: Number(variant.conversion_factor) || 1,
+      barcode: variant.barcode ?? undefined,
+      isDefault: Boolean(variant.is_default),
+      hidden: Boolean(variant.hidden),
+    };
+  }
+
+  private resolveImageUrl(image?: string | null): string | undefined {
+    if (!image) return undefined;
+    if (
+      image.startsWith('data:image') ||
+      image.startsWith('http://') ||
+      image.startsWith('https://')
+    ) {
+      return image;
+    }
+    return `http://localhost:8000/storage/${image}`;
+  }
+
+  private parseNumber(value: string | number | undefined | null): number {
+    if (value === undefined || value === null) {
+      return 0;
+    }
+    if (typeof value === 'number') {
+      return Number.isNaN(value) ? 0 : value;
+    }
+    const parsed = parseFloat(value);
+    return Number.isNaN(parsed) ? 0 : parsed;
   }
 }
 

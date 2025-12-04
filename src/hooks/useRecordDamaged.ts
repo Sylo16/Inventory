@@ -5,7 +5,8 @@ import {
   recordDamagedService, 
   Customer, 
   DamagedItem, 
-  ProductOption
+  ProductOption,
+  VariantOption
 } from '../services/recordDamagedService';
 import { showConfirm, showSuccess } from '../utils/sweetalert';
 
@@ -17,7 +18,7 @@ export const useRecordDamaged = () => {
   const [isLoading, setIsLoading] = useState(false);
   
   const [selectedCustomer, setSelectedCustomer] = useState<{value: string, label: string} | null>(null);
-  const [damageDate, setDamageDate] = useState<Date | null>(null);
+  const [damageDate, setDamageDate] = useState<Date | null>(new Date()); // Initialize to today
   const [damagedItems, setDamagedItems] = useState<DamagedItem[]>([
     recordDamagedService.createEmptyItem()
   ]);
@@ -70,15 +71,21 @@ export const useRecordDamaged = () => {
       return;
     }
 
-    const products = recordDamagedService.getCustomerProducts(customer);
+    try {
+      const products = await recordDamagedService.getCustomerProducts(customer);
 
-    if (products.length === 0) {
+      if (products.length === 0) {
+        setCustomerProductOptions([]);
+        toast.warning("No products available for damage report. Products must be purchased within the last 3 days.");
+        return;
+      }
+
+      setCustomerProductOptions(products);
+    } catch (error) {
+      console.error('Error loading customer products:', error);
+      toast.error('Failed to load customer products');
       setCustomerProductOptions([]);
-      toast.warning("No products available for damage report. Products must be purchased within the last 3 days.");
-      return;
     }
-
-    setCustomerProductOptions(products);
   }, [customers]);
 
   useEffect(() => {
@@ -104,13 +111,47 @@ export const useRecordDamaged = () => {
     const newItems = [...damagedItems];
     newItems[index].productId = option?.value || "";
     newItems[index].productName = option?.label || "";
-    newItems[index].unit_of_measurement = option?.unit || "";
-    newItems[index].maxQuantity = option?.maxQuantity;
+    newItems[index].variantId = "";
+    newItems[index].variantLabel = "";
+
+    const defaultVariant = option?.hasVariants
+      ? option?.variants?.find((variant) => variant.id === option.defaultVariantId) || option?.variants?.[0]
+      : undefined;
+
+    if (defaultVariant) {
+      newItems[index].variantId = defaultVariant.id;
+      newItems[index].variantLabel = defaultVariant.label;
+      newItems[index].unit_of_measurement = defaultVariant.label || option?.unit || "";
+      newItems[index].maxQuantity = defaultVariant.quantity ?? option?.maxQuantity;
+    } else {
+      newItems[index].unit_of_measurement = option?.unit || "";
+      newItems[index].maxQuantity = option?.maxQuantity;
+    }
     
     if (option?.maxQuantity && Number(newItems[index].quantity) > option.maxQuantity) {
       newItems[index].quantity = option.maxQuantity;
     }
     
+    setDamagedItems(newItems);
+  };
+
+  const handleVariantSelect = (index: number, variant: VariantOption | null) => {
+    const newItems = [...damagedItems];
+    if (!variant) {
+      newItems[index].variantId = "";
+      newItems[index].variantLabel = "";
+      return setDamagedItems(newItems);
+    }
+
+    newItems[index].variantId = variant.id;
+    newItems[index].variantLabel = variant.label;
+    newItems[index].unit_of_measurement = variant.label;
+    newItems[index].maxQuantity = variant.quantity ?? newItems[index].maxQuantity;
+
+    if (selectedCustomer?.value !== 'ADMIN' && typeof newItems[index].quantity === 'number' && variant.quantity && newItems[index].quantity > variant.quantity) {
+      newItems[index].quantity = variant.quantity;
+    }
+
     setDamagedItems(newItems);
   };
 
@@ -203,7 +244,7 @@ export const useRecordDamaged = () => {
         };
       });
 
-      await recordDamagedService.recordDamagedProducts(productData, isAdmin);
+      await recordDamagedService.recordDamagedProducts(productData, isAdmin, selectedCustomer?.value);
       
       const successMessage = isAdmin
         ? 'Internal/Supplier damage recorded and inventory automatically deducted!'
@@ -237,6 +278,7 @@ export const useRecordDamaged = () => {
     handleCustomerChange,
     handleDateChange,
     handleProductChange,
+    handleVariantSelect,
     handleItemChange,
     addNewRow,
     removeRow,

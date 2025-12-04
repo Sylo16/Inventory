@@ -129,8 +129,10 @@ export const useReports = () => {
   // Filter new products
   const filteredNewProducts = reportsService.filterByTime(
     inventoryData.filter(item => {
-      return item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-             item.category?.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           item.category?.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = categoryFilter === "" || item.category === categoryFilter;
+      return matchesSearch && matchesCategory;
     }),
     timeFilter
   );

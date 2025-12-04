@@ -47,16 +47,18 @@ function Sidemenu() {
             )}
 
             {/* Sidebar */}
-            <aside 
-                className={`app-sidebar bg-construction-gradient fixed lg:static inset-y-0 left-0 z-50 transform transition-all duration-300 ease-in-out ${
+            <aside  
+                className={`app-sidebar fixed lg:static inset-y-0 left-0 z-50 transform transition-all duration-300 ease-in-out ${
                     isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
                 } ${isSidebarCollapsed ? 'sidebar-collapsed lg:w-20' : 'lg:w-64'}`}
                 id="sidebar"
                 style={{ 
+                    backgroundColor: '#202947',
                     maxWidth: isMobileMenuOpen ? '16rem' : (isSidebarCollapsed ? '5rem' : '16rem'),
                     width: isMobileMenuOpen ? '16rem' : isSidebarCollapsed ? '5rem' : '16rem'
                 }}
-            >
+                >
+
                 {/* Logo Header */}
                 <div
                     style={{

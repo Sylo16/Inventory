@@ -57,8 +57,10 @@ const CustomerTable: React.FC<CustomerTableProps> = ({
               const name = String(row.cells[1].data || '');
               return html(
                 `<div class="flex items-center gap-3">
-                  <img src="${ProfileImages}" alt="Avatar" class="w-8 h-8 rounded-full" />
-                  <span>${name}</span>
+                  <div class="w-9 h-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden">
+                    <img src="${ProfileImages}" alt="Avatar" class="w-full h-full object-cover" />
+                  </div>
+                  <span class="font-bold text-slate-700">${name}</span>
                 </div>`
               );
             },
@@ -67,7 +69,7 @@ const CustomerTable: React.FC<CustomerTableProps> = ({
           { name: 'Purchase Date', width: '150px' },
           {
             name: 'Actions',
-            width: '60px',
+            width: '100px',
             formatter: (_: unknown, row: GridRow) => {
               const customerData = {
                 id: String(row.cells[0].data || ''),
@@ -79,10 +81,10 @@ const CustomerTable: React.FC<CustomerTableProps> = ({
               return html(
                 `<div class="flex justify-center gap-2">
                   <button 
-                    class="bg-yellow-500 text-white px-3 py-1 rounded text-sm flex items-center gap-1 view-btn"
+                    class="bg-white border border-slate-200 text-slate-600 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-sm flex items-center gap-2 view-btn group"
                     data-customer='${JSON.stringify(customerData)}'>
-                    <i class="bi bi-eye"></i>
-                    View
+                    <svg class="w-4 h-4 text-slate-400 group-hover:text-blue-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                    View Details
                   </button>                
                 </div>`
               );

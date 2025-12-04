@@ -25,6 +25,16 @@ export interface Customer {
   }[];
 }
 
+export interface VariantOption {
+  id: string;
+  label: string;
+  price?: number;
+  quantity?: number;
+  unit?: string;
+  isDefault?: boolean;
+  sku?: string;
+}
+
 export interface DamagedItem {
   productId: string;
   productName: string;
@@ -32,6 +42,9 @@ export interface DamagedItem {
   reason: string;
   unit_of_measurement: string;
   maxQuantity?: number;
+  refundType?: 'CASH' | 'PRODUCT';
+  variantId?: string;
+  variantLabel?: string;
 }
 
 export interface ProductOption {
@@ -39,6 +52,12 @@ export interface ProductOption {
   label: string;
   unit: string;
   maxQuantity?: number;
+  price?: number;
+  variants?: VariantOption[];
+  hasVariants?: boolean;
+  defaultVariantId?: string;
+  productId?: string;
+  image?: string;
 }
 
 export interface DamagedProductData {
@@ -48,9 +67,18 @@ export interface DamagedProductData {
   reason: string;
   date: string;
   unit_of_measurement: string;
+  action_taken?: string | null;
 }
 
 class RecordDamagedService {
+  private resolveImageUrl(image?: string | null): string | undefined {
+    if (!image) return undefined;
+    if (image.startsWith('data:image') || image.startsWith('http')) {
+      return image;
+    }
+    return `http://localhost:8000/storage/${image}`;
+  }
+
   /**
    * Fetch all customers
    */
@@ -69,12 +97,36 @@ class RecordDamagedService {
       
       console.log('Fetched products for Admin:', products); // Debug log
       
-      return products.map((product: any) => ({
-        value: product.name || product.product_name,
-        label: product.name || product.product_name,
-        unit: product.unit_of_measurement || product.unit,
-        maxQuantity: product.quantity || product.stock_quantity
-      }));
+      return products.map((product: any) => {
+        const variants = Array.isArray(product.variants)
+          ? product.variants
+              .filter((variant: any) => !variant.hidden)
+              .map((variant: any) => ({
+                id: String(variant.id),
+                label: variant.unit_label,
+                price: parseFloat(variant.unit_price || '0'),
+                quantity: variant.quantity,
+                unit: variant.unit_label,
+                isDefault: Boolean(variant.is_default),
+                sku: variant.sku || undefined
+              }))
+          : [];
+
+        const defaultVariant = variants.find((variant) => variant.isDefault) || variants[0];
+
+        return {
+          value: String(product.id || product.name || product.product_name),
+          label: product.name || product.product_name,
+          unit: defaultVariant?.unit || product.unit_of_measurement || product.unit,
+          maxQuantity: defaultVariant?.quantity ?? product.quantity ?? product.stock_quantity,
+          price: defaultVariant?.price ?? parseFloat(product.unit_price || product.price || '0'),
+          variants,
+          hasVariants: variants.length > 0,
+          defaultVariantId: defaultVariant?.id,
+          productId: String(product.id || product.product_id || product.name),
+          image: this.resolveImageUrl(product.image_url)
+        } as ProductOption;
+      });
     } catch (error) {
       console.error('Error fetching all products:', error);
       return [];
@@ -84,7 +136,12 @@ class RecordDamagedService {
   /**
    * Record damaged products
    */
-  async recordDamagedProducts(items: DamagedProductData[], isAdmin: boolean = false): Promise<void> {
+  async recordDamagedProducts(items: DamagedProductData[], isAdmin: boolean = false, customerId?: string): Promise<void> {
+    // For customer damages, validate total damaged quantity doesn't exceed purchased quantity
+    if (!isAdmin && customerId && customerId !== 'ADMIN') {
+      await this.validateTotalDamagedQuantity(items, customerId);
+    }
+
     // Record all damaged products
     const promises = items.map(item => API.post("/damaged-products", item));
     await Promise.all(promises);
@@ -102,9 +159,72 @@ class RecordDamagedService {
   }
 
   /**
+   * Validate that total damaged quantity (existing + new) doesn't exceed purchased quantity
+   */
+  async validateTotalDamagedQuantity(items: DamagedProductData[], customerId: string): Promise<void> {
+    try {
+      // Fetch existing damaged products for this customer
+      const damagedResponse = await API.get('/damaged-products');
+      const allDamagedProducts = damagedResponse.data || [];
+
+      // Fetch customer data to get purchased quantities
+      const customerResponse = await API.get(`/customers/${customerId}`);
+      const customer = customerResponse.data;
+
+      if (!customer) {
+        throw new Error('Customer not found');
+      }
+
+      const purchasedProducts = 
+        (customer.products || 
+         customer.purchased_products || 
+         customer.customer_products || 
+         []) as Array<{
+          product_name: string;
+          quantity?: number;
+        }>;
+
+      // Check each item
+      for (const item of items) {
+        // Find purchased quantity for this product
+        const purchasedProduct = purchasedProducts.find(
+          p => p.product_name === item.product_name
+        );
+
+        if (!purchasedProduct) {
+          throw new Error(`Product "${item.product_name}" was not purchased by this customer`);
+        }
+
+        const purchasedQty = purchasedProduct.quantity || 0;
+
+        // Calculate already damaged quantity for this customer + product
+        const existingDamagedQty = allDamagedProducts
+          .filter((dp: any) => 
+            dp.customer_name === customer.name && 
+            dp.product_name === item.product_name
+          )
+          .reduce((sum: number, dp: any) => sum + parseInt(dp.quantity || 0), 0);
+
+        const newDamagedQty = item.quantity;
+        const totalDamagedQty = existingDamagedQty + newDamagedQty;
+
+        if (totalDamagedQty > purchasedQty) {
+          throw new Error(
+            `Cannot record ${item.product_name}: Total damaged quantity (${totalDamagedQty}) ` +
+            `would exceed purchased quantity (${purchasedQty}). ` +
+            `Already damaged: ${existingDamagedQty}, Attempting to add: ${newDamagedQty}`
+          );
+        }
+      }
+    } catch (error: any) {
+      throw new Error(error.message || 'Failed to validate damaged quantities');
+    }
+  }
+
+  /**
    * Get products purchased by customer within last 3 days
    */
-  getCustomerProducts(customer: Customer): ProductOption[] {
+  async getCustomerProducts(customer: Customer): Promise<ProductOption[]> {
     const products = 
       (customer.products || 
        customer.purchased_products || 
@@ -114,6 +234,7 @@ class RecordDamagedService {
         unit: string;
         quantity?: number;
         purchase_date?: string;
+        unit_price?: string | number;
       }>;
 
     if (products.length === 0) return [];
@@ -132,12 +253,63 @@ class RecordDamagedService {
       return productPurchaseDate >= threeDaysAgo;
     });
 
-    return validProducts.map(product => ({
-      value: product.product_name,
-      label: product.product_name,
-      unit: product.unit,
-      maxQuantity: product.quantity
-    }));
+    // Fetch inventory prices for products that don't have unit_price in customer data
+    try {
+      const inventoryResponse = await API.get('/products');
+      const inventoryProducts = inventoryResponse.data || [];
+
+      return validProducts.map(product => {
+        const inventoryProduct = inventoryProducts.find(
+          (p: any) => (p.name || p.product_name) === product.product_name
+        );
+
+        const variants = Array.isArray(inventoryProduct?.variants)
+          ? inventoryProduct.variants
+              .filter((variant: any) => !variant.hidden)
+              .map((variant: any) => ({
+                id: String(variant.id),
+                label: variant.unit_label,
+                price: parseFloat(variant.unit_price || '0'),
+                quantity: variant.quantity,
+                unit: variant.unit_label,
+                isDefault: Boolean(variant.is_default)
+              }))
+          : [];
+
+        const priceFromInventory = inventoryProduct
+          ? parseFloat(inventoryProduct.unit_price || inventoryProduct.price || '0')
+          : 0;
+
+        const fallbackPrice = product.unit_price ? parseFloat(String(product.unit_price)) : priceFromInventory;
+
+        const selectedVariant = variants.find((variant) => variant.label === product.unit) ||
+          variants.find((variant) => variant.isDefault) ||
+          variants[0];
+
+        return {
+          value: product.product_name,
+          label: product.product_name,
+          unit: selectedVariant?.unit || product.unit,
+          maxQuantity: product.quantity || selectedVariant?.quantity,
+          price: selectedVariant?.price ?? fallbackPrice,
+          variants: variants.length ? variants : undefined,
+          hasVariants: variants.length > 0,
+          defaultVariantId: selectedVariant?.id,
+          productId: inventoryProduct ? String(inventoryProduct.id) : undefined,
+          image: this.resolveImageUrl(inventoryProduct?.image_url)
+        } as ProductOption;
+      });
+    } catch (error) {
+      console.error('Error fetching inventory prices:', error);
+      // Fallback without prices
+      return validProducts.map(product => ({
+        value: product.product_name,
+        label: product.product_name,
+        unit: product.unit,
+        maxQuantity: product.quantity,
+        price: parseFloat(String(product.unit_price || '0'))
+      }));
+    }
   }
 
   /**
@@ -190,7 +362,9 @@ class RecordDamagedService {
       productName: "",
       quantity: "",
       reason: "",
-      unit_of_measurement: ""
+      unit_of_measurement: "",
+      variantId: "",
+      variantLabel: ""
     };
   }
 }

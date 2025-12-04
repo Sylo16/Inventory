@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
-import inventoryService, { Product } from '../services/inventoryService';
+import { useNavigate } from 'react-router-dom';
+import inventoryService, { Product, ProductVariant } from '../services/inventoryService';
 
 interface LoadingStates {
   receive: { [key: string]: boolean };
@@ -11,6 +12,7 @@ interface LoadingStates {
 }
 
 export const useInventory = () => {
+  const navigate = useNavigate();
   // State management
   const [inventoryItems, setInventoryItems] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -22,14 +24,13 @@ export const useInventory = () => {
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
   
   // Modal states
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<{ url: string; name: string } | null>(null);
   
   // Quantity states
   const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
   const [refundQuantities, setRefundQuantities] = useState<{ [key: string]: number }>({});
+  const [selectedVariants, setSelectedVariants] = useState<{ [key: string]: string | undefined }>({});
   
   // Loading states
   const [loadingStates, setLoadingStates] = useState<LoadingStates>({
@@ -42,17 +43,48 @@ export const useInventory = () => {
 
   const pageSize = 12;
 
+  const hydrateVariantSelections = useCallback((items: Product[]) => {
+    setSelectedVariants((prev) => {
+      const next: Record<string, string | undefined> = { ...prev };
+      const seenIds = new Set(items.map((item) => item.id));
+
+      items.forEach((item) => {
+        if (!item.hasVariants || item.variants.length === 0) {
+          delete next[item.id];
+          return;
+        }
+
+        const existingSelection = prev[item.id];
+        const stillValid = existingSelection && item.variants.some((variant) => variant.id === existingSelection);
+        const fallback = stillValid ? existingSelection : (item.defaultVariantId ?? item.variants[0]?.id);
+
+        if (fallback) {
+          next[item.id] = fallback;
+        }
+      });
+
+      Object.keys(next).forEach((key) => {
+        if (!seenIds.has(key)) {
+          delete next[key];
+        }
+      });
+
+      return next;
+    });
+  }, []);
+
   // Fetch products
   const fetchProducts = useCallback(async () => {
     try {
       const items = await inventoryService.fetchProducts();
       await inventoryService.checkStockLevels(items);
       setInventoryItems(items);
+      hydrateVariantSelections(items);
     } catch (error) {
       console.error("Error fetching inventory:", error);
       toast.error("Failed to fetch products.");
     }
-  }, []);
+  }, [hydrateVariantSelections]);
 
   useEffect(() => {
     fetchProducts();
@@ -80,18 +112,9 @@ export const useInventory = () => {
     }));
   };
 
-  // Modal handlers
+  // Navigation handlers
   const handleUpdateProduct = (productId: string) => {
-    const productToUpdate = inventoryItems.find(item => item.id === productId);
-    if (productToUpdate) {
-      setSelectedProduct(productToUpdate);
-      setIsModalOpen(true);
-    }
-  };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setSelectedProduct(null);
+    navigate(`/inventory/edit/${productId}`);
   };
 
   const handleImageClick = (imageUrl: string, productName: string) => {
@@ -104,67 +127,7 @@ export const useInventory = () => {
     setSelectedImage(null);
   };
 
-  const handleModalChange = (field: string, value: string) => {
-    if (selectedProduct) {
-      setSelectedProduct((prevProduct) => ({
-        ...prevProduct!,
-        [field]: field === "unitPrice" ? parseFloat(value) : value,
-      }));
-    }
-  };
-
   // Product actions
-  const handleSaveChanges = async () => {
-    if (!selectedProduct) return;
-
-    try {
-      setLoadingStates(prev => ({
-        ...prev,
-        edit: { ...prev.edit, [selectedProduct.id]: true }
-      }));
-
-      const updatedProduct = await inventoryService.updateProduct(
-        selectedProduct.id,
-        selectedProduct
-      );
-
-      await inventoryService.sendNotification({
-        type: 'product_configured',
-        message: `Updated configuration for ${updatedProduct.name}`,
-        product_id: selectedProduct.id,
-        product_name: updatedProduct.name
-      });
-
-      const updatedItems = inventoryItems.map(item =>
-        item.id === selectedProduct.id ? {
-          ...item,
-          name: updatedProduct.name,
-          quantity: updatedProduct.quantity,
-          unitPrice: parseFloat(updatedProduct.unit_price) || 0,
-          unitOfMeasurement: updatedProduct.unit_of_measurement,
-          category: updatedProduct.category,
-          updatedAt: updatedProduct.updated_at 
-            ? new Date(updatedProduct.updated_at).toLocaleDateString() 
-            : "",
-          hidden: updatedProduct.hidden,
-        } : item
-      );
-
-      await inventoryService.checkStockLevels(updatedItems);
-      setInventoryItems(updatedItems);
-      setIsModalOpen(false);
-      toast.success("Product updated successfully!");
-    } catch (error) {
-      console.error("Error updating product:", error);
-      toast.error("Failed to update product.");
-    } finally {
-      setLoadingStates(prev => ({
-        ...prev,
-        edit: { ...prev.edit, [selectedProduct.id]: false }
-      }));
-    }
-  };
-
   const handleHideProduct = async (productId: string) => {
     try {
       setLoadingStates(prev => ({
@@ -233,6 +196,26 @@ export const useInventory = () => {
     }
   };
 
+  const resolveActiveVariant = useCallback((product: Product): ProductVariant | undefined => {
+    if (!product.hasVariants || product.variants.length === 0) {
+      return undefined;
+    }
+
+    const selection = selectedVariants[product.id];
+    return (
+      product.variants.find((variant) => variant.id === selection) ||
+      product.variants.find((variant) => variant.isDefault) ||
+      product.variants[0]
+    );
+  }, [selectedVariants]);
+
+  const handleVariantSelect = (productId: string, variantId: string) => {
+    setSelectedVariants((prev) => ({
+      ...prev,
+      [productId]: variantId,
+    }));
+  };
+
   const handleReceiveProduct = async (productId: string) => {
     try {
       setLoadingStates(prev => ({
@@ -246,22 +229,35 @@ export const useInventory = () => {
         return;
       }
 
-      const updatedProduct = await inventoryService.receiveProduct(productId, quantityToAdd);
+      const product = inventoryItems.find(item => item.id === productId);
+      if (!product) {
+        toast.error("Product not found.");
+        return;
+      }
+
+      const activeVariant = resolveActiveVariant(product);
+      if (product.hasVariants && !activeVariant) {
+        toast.error("Please select a variant first.");
+        return;
+      }
+
+      const updatedProduct = await inventoryService.receiveProduct(productId, quantityToAdd, activeVariant?.id);
 
       await inventoryService.sendNotification({
         type: 'product_received',
-        message: `Received ${quantityToAdd} units of ${updatedProduct.name}`,
+        message: `Received ${quantityToAdd} units of ${product.hasVariants ? `${updatedProduct.name} (${activeVariant?.unitLabel})` : updatedProduct.name}`,
         product_id: productId,
         product_name: updatedProduct.name,
         quantity: quantityToAdd
       });
 
       const updatedItems = inventoryItems.map(item =>
-        item.id === productId ? { ...item, ...updatedProduct } : item
+        item.id === productId ? updatedProduct : item
       );
 
       await inventoryService.checkStockLevels(updatedItems);
       setInventoryItems(updatedItems);
+      hydrateVariantSelections(updatedItems);
       setQuantities((prev) => ({ ...prev, [productId]: 0 }));
 
       toast.success("Product quantity updated successfully!");
@@ -295,27 +291,31 @@ export const useInventory = () => {
         return;
       }
 
-      if (product.quantity < quantityToRefund) {
-        toast.error(`Cannot refund more than current stock (${product.quantity}).`);
+      const activeVariant = resolveActiveVariant(product);
+      const availableStock = product.hasVariants ? activeVariant?.quantity ?? 0 : product.quantity;
+
+      if (availableStock < quantityToRefund) {
+        toast.error(`Cannot deduct more than current stock (${availableStock}).`);
         return;
       }
 
-      const updatedProduct = await inventoryService.deductProduct(productId, quantityToRefund);
+      const updatedProduct = await inventoryService.deductProduct(productId, quantityToRefund, activeVariant?.id);
 
       await inventoryService.sendNotification({
         type: 'product_deducted',
-        message: `Deducted ${quantityToRefund} units of ${updatedProduct.name}`,
+        message: `Deducted ${quantityToRefund} units of ${product.hasVariants ? `${updatedProduct.name} (${activeVariant?.unitLabel})` : updatedProduct.name}`,
         product_id: productId,
         product_name: updatedProduct.name,
         quantity: quantityToRefund
       });
 
       const updatedItems = inventoryItems.map(item =>
-        item.id === productId ? { ...item, ...updatedProduct } : item
+        item.id === productId ? updatedProduct : item
       );
 
       await inventoryService.checkStockLevels(updatedItems);
       setInventoryItems(updatedItems);
+      hydrateVariantSelections(updatedItems);
       setRefundQuantities((prev) => ({ ...prev, [productId]: 0 }));
 
       toast.success("Product deduction processed successfully!");
@@ -390,12 +390,11 @@ export const useInventory = () => {
     showHidden,
     currentPage,
     viewMode,
-    isModalOpen,
-    selectedProduct,
     imageModalOpen,
     selectedImage,
     quantities,
     refundQuantities,
+    selectedVariants,
     loadingStates,
     
     // Computed values
@@ -419,15 +418,16 @@ export const useInventory = () => {
     handleQuantityChange,
     handleRefundQuantityChange,
     handleUpdateProduct,
-    handleCloseModal,
     handleImageClick,
     handleCloseImageModal,
-    handleModalChange,
-    handleSaveChanges,
     handleHideProduct,
     handleUnhideProduct,
     handleReceiveProduct,
     handleRefundProduct,
     handleSortToggle,
+    handleVariantSelect,
+
+    // Helpers
+    resolveActiveVariant,
   };
 };

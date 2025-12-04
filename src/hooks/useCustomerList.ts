@@ -13,14 +13,12 @@ export const useCustomerList = () => {
   
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [addCustomerData, setAddCustomerData] = useState<Customer | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
   const [newlyAddedProducts, setNewlyAddedProducts] = useState<Product[]>([]);
   const [showReceipt, setShowReceipt] = useState(false);
   const [receiptData, setReceiptData] = useState<any>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isProcessing] = useState(false);
 
   // Print handler
   const handlePrint = useReactToPrint({
@@ -53,145 +51,9 @@ export const useCustomerList = () => {
     fetchData();
   }, []);
 
-  // Handler for adding products to existing customer
-  const handleAddProductsToCustomer = async ({
-    products,
-    purchaseDate,
-    amountPaid,
-    change,
-  }: {
-    products: Array<{
-      productName: string;
-      category: string;
-      unit: string;
-      quantity: string;
-    }>;
-    purchaseDate: string;
-    amountPaid: number;
-    change: number;
-  }) => {
-    if (!addCustomerData) return;
-
-    const newProducts: Product[] = products.map((p) => ({
-      product_name: p.productName,
-      category: p.category,
-      unit: p.unit,
-      quantity: String(p.quantity), // Ensure it's a string for the Product type
-      purchase_date: purchaseDate,
-    }));
-
-    // Convert to the format expected by the service (with numeric quantity)
-    const productsForService = products.map((p) => ({
-      product_name: p.productName,
-      category: p.category,
-      unit: p.unit,
-      quantity: Number(p.quantity),
-      purchase_date: purchaseDate,
-    }));
-
-    try {
-      setIsProcessing(true);
-      
-      // Update inventory quantities
-      await Promise.all(
-        products.map(async (product) => {
-          const inventoryItem = inventoryItems.find(
-            (item) => item.name === product.productName
-          );
-          
-          if (!inventoryItem) {
-            throw new Error(`Product ${product.productName} not found in inventory`);
-          }
-
-          const quantityToDeduct = parseInt(product.quantity);
-          if (isNaN(quantityToDeduct) || quantityToDeduct <= 0) {
-            throw new Error(`Invalid quantity for ${product.productName}`);
-          }
-
-          if (inventoryItem.quantity < quantityToDeduct) {
-            throw new Error(`Insufficient stock for ${product.productName}`);
-          }
-
-          await customerService.deductFromInventory(inventoryItem.id, quantityToDeduct);
-
-          await customerService.sendNotification({
-            type: 'product_deducted',
-            message: `Deducted ${quantityToDeduct} units of ${inventoryItem.name} for customer purchase`,
-            product_id: inventoryItem.id,
-            product_name: inventoryItem.name,
-            quantity: quantityToDeduct
-          });
-        })
-      );
-
-      // Add products to customer
-      await customerService.addProductsToCustomer(addCustomerData.id, { products: productsForService });
-
-      await customerService.sendNotification({
-        type: 'customer_product_added',
-        message: `Added ${products.length} product(s) to customer: ${addCustomerData.name}`,
-        customer_id: addCustomerData.id,
-        customer_name: addCustomerData.name,
-        products_added: products.map(p => p.productName).join(', '),
-      });
-
-      // Refresh data
-      const [updatedCustomer, updatedInventory] = await Promise.all([
-        customerService.fetchCustomer(addCustomerData.id),
-        customerService.fetchInventory(),
-      ]);
-
-      setCustomers((prev) =>
-        prev.map((c) => (c.id === addCustomerData.id ? updatedCustomer : c))
-      );
-      setInventoryItems(updatedInventory);
-      setSelectedCustomer(updatedCustomer);
-      setNewlyAddedProducts(newProducts);
-
-      const receiptProductsWithPrices = products.map((p) => {
-        const inventoryItem = updatedInventory.find((item: any) => item.name === p.productName);
-        const unitPrice = inventoryItem?.unit_price || "0";
-        const total = Number(p.quantity) * parseFloat(unitPrice);
-
-        return {
-          product_name: p.productName,
-          category: p.category,
-          unit: p.unit,
-          quantity: p.quantity,
-          unit_price: unitPrice,
-          total: total,
-          purchase_date: purchaseDate,
-        };
-      });
-      const grandTotal = receiptProductsWithPrices.reduce((sum, p) => sum + p.total, 0);
-
-      setReceiptData({
-        customer: {
-          name: addCustomerData.name,
-          phone: addCustomerData.phone,
-          purchase_date: purchaseDate,
-        },
-        products: receiptProductsWithPrices,
-        grandTotal: grandTotal,
-        receiptNumber: `RCP-${addCustomerData.id}-${Date.now()}`,
-        amountPaid: amountPaid,
-        change: change,
-      });
-
-      setIsAddModalOpen(false);
-      setIsProcessing(false);
-      
-      await showSuccess("Product Added Successfully!", "The product has been added to the customer and inventory has been updated.");
-      
-      setTimeout(() => {
-        setShowReceipt(true);
-      }, 500);
-    } catch (error: unknown) {
-      setIsProcessing(false);
-      const message = error instanceof Error ? error.message : 'Failed to update product.';
-      await showError("Failed to Add Product", message);
-    }
-  };
+  // Previously this hook handled modal-based adding of products to customers.
+  // Modal flow has been removed in favor of a dedicated page component. If needed,
+  // product-adding logic can be centralized here in the future.
 
   // Back to list
   const handleBackToList = () => {
@@ -256,11 +118,8 @@ export const useCustomerList = () => {
     setViewMode("detail");
   };
 
-  // Open add products modal
-  const handleOpenAddProducts = (customer: Customer) => {
-    setAddCustomerData(customer);
-    setIsAddModalOpen(true);
-  };
+  // NOTE: modal-based open handler removed; navigation to the standalone page
+  // should be performed by the calling component.
 
   return {
     // Refs
@@ -269,9 +128,6 @@ export const useCustomerList = () => {
     // State
     customers,
     inventoryItems,
-    isAddModalOpen,
-    setIsAddModalOpen,
-    addCustomerData,
     selectedCustomer,
     viewMode,
     newlyAddedProducts,
@@ -281,12 +137,10 @@ export const useCustomerList = () => {
     isProcessing,
     
     // Handlers
-    handleAddProductsToCustomer,
     handleBackToList,
     handlePrintReceipt,
     handleViewCustomer,
-    handleOpenAddProducts,
-    handlePrint,
-    setAddCustomerData
+    // handleOpenAddProducts removed
+    handlePrint
   };
 };

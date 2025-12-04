@@ -1,17 +1,19 @@
-// src/components/PageLoader.tsx
-import { Trefoil } from 'ldrs/react';
-import 'ldrs/react/Trefoil.css';
+import { DNA } from 'react-loader-spinner';
 
 export default function PageLoader() {
   return (
     <div style={styles.overlay}>
-      <Trefoil
-        size={80}
-        stroke={4}
-        strokeLength={0.15}
-        bgOpacity={0.1}
-        speed={1.4}
-        color="#ef4444"
+      <DNA
+        visible={true}
+        height="80"
+        width="80"
+        ariaLabel="dna-loading"
+        wrapperStyle={{}}
+        wrapperClass="dna-wrapper"
+        // To match your previous system theme (Red #ef4444), 
+        // uncomment the lines below. Otherwise, it uses default Pink/Blue.
+        // dnaColorOne="#ef4444"
+        // dnaColorTwo="#fca5a5" 
       />
     </div>
   );
@@ -28,5 +30,7 @@ const styles = {
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 9999,
+    // Optional: add a slight background blur or dim if desired
+    // backgroundColor: 'rgba(255, 255, 255, 0.8)', 
   },
 };

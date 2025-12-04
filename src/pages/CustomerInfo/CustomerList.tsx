@@ -1,10 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import Breadcrumb from "../../components/breadcrumbs";
 import PageLayout from "../../components/PageLayout";
-import FormModal from "../../components/FormModal";
-import { FiUser, FiUserPlus } from "react-icons/fi";
-import AddProductForm from "../../components/Customer/AddProductForm"; 
+import { useNavigate } from 'react-router-dom';
+import { FiUserPlus, FiSearch, FiFilter } from "react-icons/fi";
 import ReceiptModal from "../../components/Customer/ReceiptModal";
 import CustomerTable from "../../components/Customer/CustomerTable";
 import CustomerDetailsView from "../../components/Customer/CustomerDetailsView";
@@ -16,8 +15,6 @@ const CustomerPurchased: React.FC = () => {
     receiptRef,
     customers,
     inventoryItems,
-    isAddModalOpen,
-    setIsAddModalOpen,
     selectedCustomer,
     viewMode,
     newlyAddedProducts,
@@ -25,64 +22,108 @@ const CustomerPurchased: React.FC = () => {
     setShowReceipt,
     receiptData,
     isProcessing,
-    handleAddProductsToCustomer,
     handleBackToList,
     handlePrintReceipt,
     handleViewCustomer,
-    handleOpenAddProducts,
-    handlePrint,
-    setAddCustomerData
+    handlePrint
   } = useCustomerList();
 
+  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState("newest");
+
+  const filteredCustomers = customers
+    .filter(customer => 
+      customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (customer.phone && customer.phone.includes(searchTerm))
+    )
+    .sort((a, b) => {
+      if (sortBy === "name-asc") return a.name.localeCompare(b.name);
+      if (sortBy === "name-desc") return b.name.localeCompare(a.name);
+      if (sortBy === "newest") return String(b.id || "").localeCompare(String(a.id || ""), undefined, { numeric: true });
+      if (sortBy === "oldest") return String(a.id || "").localeCompare(String(b.id || ""), undefined, { numeric: true });
+      return 0;
+    });
+
   return (
-    <PageLayout className="p-3 sm:p-5 animate-slideInUp">
-      <div className="container-fluid">
+    <PageLayout className="p-0 bg-slate-50 min-h-screen animate-slideInUp">
+      <div className="max-w-[1920px] mx-auto p-4 sm:p-6 lg:p-8">
         {viewMode === "list" ? (
           <>
-            <Breadcrumb
-              title="Customer Lists"
-              links={[{ text: "Dashboard", link: "/dashboard" }]}
-              active="Customer Lists"
-            />
-              
-              {/* Header Section with Gradient */}
-              <div className="rounded-lg p-4 sm:p-6 mb-4 shadow-construction">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                      Customer Purchase Records
-                    </h1>
-                    <p className="text-gray-500 mt-2 text-sm md:text-base">View and manage all customer purchases</p>
-                  </div>
-                  <Link to="/customerpurchased/addcustomer">
-                    <button className="bg-blue-600 text-white hover:bg-white/90 px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-semibold flex items-center gap-2 transition-all shadow-sm w-full sm:w-auto justify-center">
-                      <FiUserPlus className="text-lg" />
-                      Add New Customer
-                    </button>
-                  </Link>
-                </div>
-              </div>
+            <div className="mb-6">
+              <Breadcrumb
+                title="Customer Lists"
+                links={[{ text: "Dashboard", link: "/dashboard" }]}
+                active="Customer Lists"
+              />
+            </div>
 
               {/* Customer Table Card */}
-              <div className="grid grid-cols-12 gap-x-6 ">
-                <div className="xxl:col-span-12 col-span-12">
-                  <div className="box overflow-hidden main-content-card ">
-                    <div className="box-body p-4 sm:p-5 bg-gradient-to-br from-construction-light/30 via-white to-construction-light/10">
-                      <div className="mb-4">
-                        <h2 className="text-lg font-bold text-construction-dark flex items-center gap-2">
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                          </svg>
-                          All Customers
-                        </h2>
-                      </div>
-                      <CustomerTable
-                        customers={customers}
-                        onViewCustomer={handleViewCustomer}
-                        onAddProducts={handleOpenAddProducts}
-                      />
+              <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex flex-col lg:flex-row justify-between items-center gap-4">
+                  {/* Title Section */}
+                  <div className="flex items-center gap-3 w-full lg:w-auto">
+                    <div className="p-2 bg-white rounded-lg shadow-sm text-blue-600">
+                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h1 className="text-xl font-bold text-slate-800">Customer Records</h1>
+                      <p className="text-slate-500 text-xs font-medium">Manage purchase history and customer details</p>
                     </div>
                   </div>
+
+                  {/* Actions & Filters */}
+                  <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+                    {/* Search Filter */}
+                    <div className="relative w-full sm:w-64 group">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <FiSearch className="text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                      </div>
+                      <input 
+                        type="text" 
+                        placeholder="Search customers..." 
+                        className="pl-10 pr-4 py-2.5 w-full bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-600 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all shadow-sm"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+                    </div>
+
+                    {/* Sort Filter */}
+                    <div className="relative group">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <FiFilter className="text-slate-400" />
+                      </div>
+                      <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value)}
+                        className="pl-10 pr-8 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-600 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all shadow-sm appearance-none cursor-pointer hover:border-blue-300"
+                      >
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                        <option value="name-asc">Name (A-Z)</option>
+                        <option value="name-desc">Name (Z-A)</option>
+                      </select>
+                      <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                        <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                      </div>
+                    </div>
+
+                    <Link to="/customerpurchased/addcustomer" className="w-full sm:w-auto">
+                      <button className="w-full sm:w-auto bg-sky-500 hover:bg-sky-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-sm shadow-blue-200 transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+                        <FiUserPlus className="text-lg" />
+                        <span>New Customer</span>
+                      </button>
+                    </Link>
+                  </div>
+                </div>
+                <div className="p-0">
+                  <CustomerTable
+                    customers={filteredCustomers}
+                    onViewCustomer={handleViewCustomer}
+                    onAddProducts={(customer) => navigate('/customerpurchased/addproducts', { state: { customerId: customer.id } })}
+                  />
                 </div>
               </div>
             </>
@@ -93,31 +134,12 @@ const CustomerPurchased: React.FC = () => {
               newlyAddedProducts={newlyAddedProducts}
               onBack={handleBackToList}
               onPrintReceipt={handlePrintReceipt}
-              onAddProduct={() => {
-                setAddCustomerData(selectedCustomer);
-                setIsAddModalOpen(true);
-              }}
+              onAddProduct={() => navigate('/customerpurchased/addproducts', { state: { customerId: selectedCustomer?.id } })}
             />
           )}
         </div>
 
-        {/* Modal for adding products */}
-        <FormModal
-          isOpen={isAddModalOpen}
-          title={
-            <div className="flex items-center gap-2">
-              <FiUser />
-              Add Products to Customer
-            </div>
-          }
-          onClose={() => setIsAddModalOpen(false)}
-        >
-          <AddProductForm
-            inventoryItems={inventoryItems}
-            onSubmit={handleAddProductsToCustomer}
-            loading={false}
-          />
-        </FormModal>
+        {/* Modal removed: add-products is now a dedicated page */}
 
         {/* Receipt Modal - Same as CustomerAdd */}
         <ReceiptModal

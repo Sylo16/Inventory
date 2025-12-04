@@ -12,7 +12,7 @@ const SalesReportComponent: React.FC<SalesReportProps> = ({ data, totalSales }) 
       <div className="mb-4 grid grid-cols-2 md:grid-cols-3 gap-4">
         <div className="report-card card-gradient-blue glow-info text-center">
           <h4 className="font-semibold">Total Sales</h4>
-          <p className="text-2xl font-bold">₱{totalSales.toFixed(2)}</p>
+          <p className="text-2xl font-bold">₱{totalSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 3 })}</p>
         </div>
         <div className="report-card card-success glow-success text-center">
           <h4 className="font-semibold">Total Transactions</h4>

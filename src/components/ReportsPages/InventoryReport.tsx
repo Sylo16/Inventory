@@ -22,7 +22,7 @@ const InventoryReport: React.FC<InventoryReportProps> = ({
       <div className="mb-4 grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="report-card card-gradient text-center">
           <h4>Total Inventory Value</h4>
-          <p className="text-2xl font-bold">₱{inventoryValue.toFixed(2)}</p>
+          <p className="text-2xl font-bold">₱{inventoryValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
         </div>
 
         <div className="report-card card-success glow-success text-center">
@@ -62,8 +62,8 @@ const InventoryReport: React.FC<InventoryReportProps> = ({
                   <td className="py-2 px-4 border">{item.category || "N/A"}</td>
                   <td className="py-2 px-4 border">{item.quantity}</td>
                   <td className="py-2 px-4 border">{item.unitOfMeasurement}</td>
-                  <td className="py-2 px-4 border">₱{item.unitPrice.toFixed(2)}</td>
-                  <td className="py-2 px-4 border">₱{(item.quantity * item.unitPrice).toFixed(2)}</td>
+                  <td className="py-2 px-4 border">₱{Number(item.unitPrice).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  <td className="py-2 px-4 border">₱{Number(item.quantity * item.unitPrice).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                   <td className="py-2 px-4 border">
                     <span className={`px-2 py-1 rounded text-xs ${
                       item.quantity === 0

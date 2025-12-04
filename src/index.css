@@ -1,29 +1,31 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    /* Primary Brand Colors (Red - from background) */
-    --color-primary-start: 255 0 0; /* #FF0000 */
-    --color-primary-mid: 230 0 0; /* #E60000 */
-    --color-primary-end: 204 0 0; /* #CC0000 */
+    /* Primary Brand Colors (Deep Construction Blue) */
+    --color-primary-start: 59 130 246; /* #3B82F6 Blue-500 */
+    --color-primary-mid: 37 99 235; /* #2563EB Blue-600 */
+    --color-primary-end: 29 78 216; /* #1D4ED8 Blue-700 */
 
-    /* Secondary Brand Colors (Orange) */
-    --color-secondary-light: 255 179 71; /* #FFB347 */
-    --color-secondary: 255 140 66; /* #FF8C42 */
-    --color-secondary-dark: 255 107 53; /* #FF6B35 */
+    /* Secondary Brand Colors (Safety Orange) */
+    --color-secondary-light: 251 146 60; /* #FB923C Orange-400 */
+    --color-secondary: 249 115 22; /* #F97316 Orange-500 */
+    --color-secondary-dark: 234 88 12; /* #EA580C Orange-600 */
 
-    /* Accent Colors (Yellow/Gold) */
-    --color-accent-light: 255 215 0; /* #FFD700 */
-    --color-accent: 255 193 7; /* #FFC107 */
-    --color-accent-dark: 255 152 0; /* #FF9800 */
+    /* Accent Colors (Industrial Yellow) */
+    --color-accent-light: 253 224 71; /* #FDE047 Yellow-300 */
+    --color-accent: 250 204 21; /* #FACC15 Yellow-400 */
+    --color-accent-dark: 234 179 8; /* #EAB308 Yellow-500 */
 
-    /* Construction Blue */
-    --color-construction-light: 93 173 226; /* #5DADE2 */
-    --color-construction: 52 152 219; /* #3498DB */
-    --color-construction-dark: 40 116 166; /* #2874A6 */
-    --color-construction-navy: 27 79 114; /* #1B4F72 */
+    /* Construction Blue (Legacy/Specific) */
+    --color-construction-light: 56 189 248; /* #38BDF8 Sky-400 */
+    --color-construction: 14 165 233; /* #0EA5E9 Sky-500 */
+    --color-construction-dark: 2 132 199; /* #0284C7 Sky-600 */
+    --color-construction-navy: 12 74 110; /* #0C4A6E Sky-900 */
 
     /* Status Colors */
     --color-success-light: 134 239 172; /* #86EFAC */

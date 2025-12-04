@@ -27,14 +27,14 @@ const ProductSuccessModal: React.FC<ProductSuccessModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-        <div className="p-6">
+    <div className="fixed inset-0 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm z-50 p-4 animate-fadeIn">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-scaleIn">
+        <div className="p-8">
           <div className="text-center">
             {/* Success Icon */}
-            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-success-light/20 mb-4">
+            <div className="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-emerald-50 mb-6 ring-8 ring-emerald-50/50">
               <svg 
-                className="h-10 w-10 text-success" 
+                className="h-10 w-10 text-emerald-500" 
                 fill="none" 
                 stroke="currentColor" 
                 viewBox="0 0 24 24"
@@ -42,29 +42,29 @@ const ProductSuccessModal: React.FC<ProductSuccessModalProps> = ({
                 <path 
                   strokeLinecap="round" 
                   strokeLinejoin="round" 
-                  strokeWidth="2" 
+                  strokeWidth="3" 
                   d="M5 13l4 4L19 7"
                 />
               </svg>
             </div>
 
             {/* Success Message */}
-            <h3 className="text-success font-bold text-2xl mb-2">Success!</h3>
-            <p className="text-neutral-600 mb-6">Product has been added to inventory</p>
+            <h3 className="text-slate-800 font-extrabold text-2xl mb-2">Success!</h3>
+            <p className="text-slate-500 mb-8 font-medium">Product has been added to inventory successfully.</p>
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <button 
-                onClick={handleViewInventory} 
-                className="flex-1 bg-construction hover:bg-construction-dark text-white py-3 px-6 rounded-lg font-semibold transition-colors"
-              >
-                View Inventory
-              </button>
+            <div className="flex flex-col gap-3">
               <button 
                 onClick={handleAddAnother} 
-                className="flex-1 bg-success hover:bg-success-dark text-white py-3 px-6 rounded-lg font-semibold transition-colors"
+                className="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3.5 px-6 rounded-xl font-bold shadow-lg shadow-emerald-200 transition-all active:scale-[0.98]"
               >
-                Add Another
+                Add Another Product
+              </button>
+              <button 
+                onClick={handleViewInventory} 
+                className="w-full bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 py-3.5 px-6 rounded-xl font-bold transition-all active:scale-[0.98]"
+              >
+                View Inventory
               </button>
             </div>
           </div>

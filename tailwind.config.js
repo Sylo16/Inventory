@@ -6,6 +6,10 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+        serif: ['"Cinzel"', 'serif'],
+      },
       colors: {
         // Primary Brand Colors (Red)
         primaryStart: "#FF0000",

@@ -1,5 +1,15 @@
 import API from '../api';
 
+export interface VariantPayload {
+  sku?: string | null;
+  unit_label: string;
+  unit_price: number;
+  quantity: number;
+  conversion_factor?: number;
+  barcode?: string | null;
+  is_default?: boolean;
+}
+
 export interface ProductFormData {
   name: string;
   sku: string;
@@ -8,6 +18,7 @@ export interface ProductFormData {
   unit_of_measurement: string;
   category?: string;
   image_url?: string | null;
+  variants?: VariantPayload[];
 }
 
 export interface ProductResponse {
